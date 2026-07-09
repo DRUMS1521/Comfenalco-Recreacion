@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import api from '../services/api'
+import { calcHours, getMondayOfStr as getMondayOf, getWeekDaysFromMonday as getWeekDays, LIMITE_HORAS } from '../utils/hours'
 
 const ESTADO_CONFIG = {
   pendiente:       { label: 'Pendiente',    color: 'bg-yellow-400', text: 'text-yellow-700', bg: 'bg-yellow-50 border-yellow-200' },
@@ -16,32 +17,6 @@ const TIPOS_HORA_EXTRA = [
   { value: 'flexible',  label: 'Horas Flexibles',         desc: 'Compensación en tiempo libre' },
 ]
 
-const LIMITE_HORAS = 42
-
-function calcHours(inicio, fin) {
-  if (!inicio || !fin) return 0
-  const [h1, m1] = inicio.split(':').map(Number)
-  const [h2, m2] = fin.split(':').map(Number)
-  const mins = (h2 * 60 + m2) - (h1 * 60 + m1)
-  return mins > 0 ? Math.max(mins / 60, 1) : 0
-}
-
-function getMondayOf(dateStr) {
-  const [y, m, d] = dateStr.split('-').map(Number)
-  const date = new Date(y, m - 1, d)
-  const day = date.getDay()
-  const diff = day === 0 ? -6 : 1 - day
-  date.setDate(date.getDate() + diff)
-  return date.toISOString().split('T')[0]
-}
-
-function getWeekDays(monday) {
-  const [y, m, d] = monday.split('-').map(Number)
-  return Array.from({ length: 7 }, (_, i) => {
-    const date = new Date(y, m - 1, d + i)
-    return date.toISOString().split('T')[0]
-  })
-}
 
 function tieneConflictoHorario(recId, solicitudes, solicitud) {
   if (!recId || !solicitud.fecha_evento || !solicitud.hora_inicio || !solicitud.hora_fin) return null

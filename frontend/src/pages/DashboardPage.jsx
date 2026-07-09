@@ -13,6 +13,8 @@ import StatsAdmin from '../components/StatsAdmin'
 import EmpresasView from '../components/EmpresasView'
 import PromotorDashboard from '../components/PromotorDashboard'
 import UsersView from '../components/UsersView'
+import HorasExtraRecreadorView from '../components/HorasExtraRecreadorView'
+import HorasExtraAdminView from '../components/HorasExtraAdminView'
 import api from '../services/api'
 import { notify } from '../utils/notify'
 import { formatHora } from '../utils/timeFormat'
@@ -424,6 +426,7 @@ export default function DashboardPage() {
     estadisticas: 'Estadísticas',
     empresas:     'Empresas',
     usuarios:     'Gestión de Usuarios',
+    'horas-extra': isRecreador ? 'Mis Horas Extras' : 'Horas Extras y Recargos',
   }
 
   return (
@@ -848,6 +851,16 @@ export default function DashboardPage() {
                 {isAdmin
                   ? <StatsAdmin recreadores={recreadores} />
                   : <StatsRecreador />
+                }
+              </div>
+            )}
+
+            {/* Tab: Horas Extras y Recargos */}
+            {tab === 'horas-extra' && (
+              <div className="p-4 sm:p-6">
+                {isAdmin
+                  ? <HorasExtraAdminView />
+                  : <HorasExtraRecreadorView />
                 }
               </div>
             )}

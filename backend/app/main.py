@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from app.core.config import settings
 from app.core.database import Base, engine, SessionLocal
-from app.routes import auth, solicitudes, stats, empresas, users
+from app.routes import auth, solicitudes, stats, empresas, users, horas_extra
 
 
 def _seed_users_if_empty():
@@ -101,6 +101,7 @@ app.include_router(solicitudes.router)
 app.include_router(stats.router)
 app.include_router(empresas.router)
 app.include_router(users.router)
+app.include_router(horas_extra.router)
 
 
 @app.get("/")

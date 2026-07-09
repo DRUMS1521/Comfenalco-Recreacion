@@ -1,32 +1,10 @@
 import { useState } from 'react'
 import { formatHora } from '../utils/timeFormat'
+import { calcHours, getMondayOfDate as getMondayOf, toYMD, LIMITE_HORAS } from '../utils/hours'
 
 const DIAS_SEMANA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 const MESES      = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
 const MESES_FULL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
-
-const LIMITE_HORAS = 42
-
-function getMondayOf(date) {
-  const d = new Date(date)
-  const day = d.getDay()
-  const diff = day === 0 ? -6 : 1 - day
-  d.setDate(d.getDate() + diff)
-  d.setHours(0, 0, 0, 0)
-  return d
-}
-
-function toYMD(d) {
-  return d.toISOString().split('T')[0]
-}
-
-function calcHours(inicio, fin) {
-  if (!inicio || !fin) return 0
-  const [h1, m1] = inicio.split(':').map(Number)
-  const [h2, m2] = fin.split(':').map(Number)
-  const mins = (h2 * 60 + m2) - (h1 * 60 + m1)
-  return mins > 0 ? Math.max(mins / 60, 1) : 0
-}
 
 function fmt(h) {
   return h % 1 === 0 ? String(h) : h.toFixed(1)

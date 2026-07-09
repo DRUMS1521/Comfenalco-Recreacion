@@ -1,35 +1,12 @@
 import { useState, useEffect } from 'react'
 import api from '../services/api'
 import { formatHora } from '../utils/timeFormat'
+import { calcHours, getMondayOfDate as getMondayOf, toYMD } from '../utils/hours'
 
 const DIAS_SEMANA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 const DIAS_FULL   = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
 const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
 const MESES_FULL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
-
-/** Devuelve el lunes de la semana que contiene `date` */
-function getMondayOf(date) {
-  const d = new Date(date)
-  const day = d.getDay()                   // 0=dom … 6=sáb
-  const diff = (day === 0 ? -6 : 1 - day) // retroceder al lunes
-  d.setDate(d.getDate() + diff)
-  d.setHours(0, 0, 0, 0)
-  return d
-}
-
-/** Formatea YYYY-MM-DD a partir de un Date */
-function toYMD(d) {
-  return d.toISOString().split('T')[0]
-}
-
-/** Calcula horas decimales entre dos HH:MM */
-function calcHours(inicio, fin) {
-  if (!inicio || !fin) return 0
-  const [h1, m1] = inicio.split(':').map(Number)
-  const [h2, m2] = fin.split(':').map(Number)
-  const mins = (h2 * 60 + m2) - (h1 * 60 + m1)
-  return mins > 0 ? Math.max(mins / 60, 1) : 0
-}
 
 /** Tarjeta de evento dentro de la celda */
 function EventCard({ sol, onClick }) {
