@@ -5,10 +5,10 @@ import SolicitudDetailModal from './SolicitudDetailModal'
 import { formatHora } from '../utils/timeFormat'
 
 const ESTADO_CONFIG = {
-  pendiente:      { label: 'Pendiente',    cls: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
-  programado:     { label: 'Programado',   cls: 'bg-blue-100 text-blue-800 border-blue-200' },
-  'por corregir': { label: 'Por Corregir', cls: 'bg-orange-100 text-orange-800 border-orange-200' },
-  finalizado:     { label: 'Finalizado',   cls: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+  pendiente:      { label: 'Pendiente',    cls: 'border-yellow-500 text-yellow-800' },
+  programado:     { label: 'Programado',   cls: 'border-blue-600 text-blue-800' },
+  'por corregir': { label: 'Por Corregir', cls: 'border-orange-500 text-orange-800' },
+  finalizado:     { label: 'Finalizado',   cls: 'border-primary-700 text-primary-800' },
 }
 
 const FILTER_BTNS = [
@@ -67,14 +67,11 @@ export default function PromotorDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-ink-400">
             {solicitudes.length} solicitud{solicitudes.length !== 1 ? 'es' : ''} en total
           </p>
         </div>
-        <button
-          onClick={() => setShowNueva(true)}
-          className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition shadow"
-        >
+        <button onClick={() => setShowNueva(true)} className="btn-primary">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
@@ -91,10 +88,10 @@ export default function PromotorDashboard() {
             <button
               key={estado}
               onClick={() => handleFiltro(estado)}
-              className={`flex items-center gap-3 p-3.5 rounded-xl border-2 transition-all text-left ${
+              className={`flex items-center gap-3 p-3.5 rounded-md border transition-colors text-left ${
                 activo
-                  ? activeCls + ' shadow-sm'
-                  : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+                  ? activeCls
+                  : 'bg-white border-ink-200 text-ink-600 hover:border-ink-400'
               }`}
             >
               <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${dot}`} />
@@ -109,14 +106,14 @@ export default function PromotorDashboard() {
 
       {/* Indicator bar */}
       {filtro && (
-        <div className="flex items-center justify-between text-sm bg-gray-50 rounded-xl px-4 py-2.5 border border-gray-100">
-          <span className="text-gray-600">
-            Mostrando <span className="font-semibold text-gray-900">{filtered.length}</span> solicitud{filtered.length !== 1 ? 'es' : ''} ·{' '}
+        <div className="flex items-center justify-between text-sm bg-ink-50 rounded-md px-4 py-2.5 border border-ink-100">
+          <span className="text-ink-600">
+            Mostrando <span className="font-semibold text-ink-900">{filtered.length}</span> solicitud{filtered.length !== 1 ? 'es' : ''} ·{' '}
             {FILTER_BTNS.find(b => b.estado === filtro)?.label}
           </span>
           <button
             onClick={() => { setFiltro(null); setPage(1) }}
-            className="text-primary-600 font-medium hover:underline text-xs"
+            className="text-primary-800 font-semibold uppercase tracking-wide hover:text-accent-700 text-xs"
           >
             Ver todas
           </button>
@@ -124,24 +121,26 @@ export default function PromotorDashboard() {
       )}
 
       {/* Lista */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="card-corp overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-16">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-700" />
           </div>
         ) : paginated.length === 0 ? (
-          <div className="text-center py-16 px-4 text-gray-400">
-            <div className="text-4xl mb-3">📋</div>
-            <p className="font-medium text-gray-500">
+          <div className="text-center py-16 px-4 text-ink-400">
+            <div className="w-11 h-11 mx-auto mb-3 rounded-md border border-ink-200 flex items-center justify-center text-ink-300">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+            </div>
+            <p className="font-medium text-ink-500">
               {filtro
                 ? `No tienes solicitudes ${FILTER_BTNS.find(b => b.estado === filtro)?.label.toLowerCase()}`
                 : 'Aún no tienes solicitudes'}
             </p>
             {!filtro && (
-              <button
-                onClick={() => setShowNueva(true)}
-                className="mt-4 inline-flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 transition"
-              >
+              <button onClick={() => setShowNueva(true)} className="btn-primary mt-4">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
@@ -150,15 +149,15 @@ export default function PromotorDashboard() {
             )}
           </div>
         ) : (
-          <div className="divide-y divide-gray-50">
+          <div className="divide-y divide-ink-100">
             {paginated.map(sol => {
-              const cfg = ESTADO_CONFIG[sol.estado] || { label: sol.estado, cls: 'bg-gray-100 text-gray-600 border-gray-200' }
+              const cfg = ESTADO_CONFIG[sol.estado] || { label: sol.estado, cls: 'border-ink-400 text-ink-600' }
               const recreadores = sol.recreadores_asignados ?? []
               return (
                 <button
                   key={sol.id}
                   onClick={() => setModalSol(sol)}
-                  className="w-full text-left px-4 sm:px-5 py-3.5 hover:bg-gray-50 transition-colors"
+                  className="w-full text-left px-4 sm:px-5 py-3.5 hover:bg-ink-50 transition-colors"
                 >
                   <div className="flex items-start gap-3">
                     {/* Dot de estado */}
@@ -166,22 +165,22 @@ export default function PromotorDashboard() {
                       sol.estado === 'pendiente'    ? 'bg-yellow-400' :
                       sol.estado === 'programado'   ? 'bg-blue-400'   :
                       sol.estado === 'por corregir' ? 'bg-orange-400' :
-                      sol.estado === 'finalizado'   ? 'bg-emerald-400': 'bg-gray-300'
+                      sol.estado === 'finalizado'   ? 'bg-emerald-400': 'bg-ink-300'
                     }`} />
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-gray-800 text-sm">{sol.empresa}</span>
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${cfg.cls}`}>
+                        <span className="font-semibold text-ink-800 text-sm">{sol.empresa}</span>
+                        <span className={`badge-corp ${cfg.cls}`}>
                           {cfg.label}
                         </span>
                       </div>
 
                       <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
-                        <span className="text-gray-500 text-xs">
+                        <span className="text-ink-500 text-xs">
                           {sol.fecha_evento} · {formatHora(sol.hora_inicio)}–{formatHora(sol.hora_fin)}
                         </span>
-                        <span className="text-gray-400 text-xs">{sol.ciudad} · {sol.tipo_servicio}</span>
+                        <span className="text-ink-400 text-xs">{sol.ciudad} · {sol.tipo_servicio}</span>
                       </div>
 
                       {/* Recreador asignado (solo si programado) */}
@@ -217,7 +216,7 @@ export default function PromotorDashboard() {
                       )}
                     </div>
 
-                    <svg className="w-4 h-4 text-gray-300 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 text-ink-300 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </div>
@@ -229,21 +228,21 @@ export default function PromotorDashboard() {
 
         {/* Paginación */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2 px-4 py-3 border-t border-gray-50">
+          <div className="flex items-center justify-center gap-2 px-4 py-3 border-t border-ink-100">
             <button
               disabled={page === 1}
               onClick={() => setPage(p => p - 1)}
-              className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+              className="btn-secondary btn-sm disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Anterior
             </button>
-            <span className="text-sm text-gray-400 px-2">
+            <span className="text-sm text-ink-400 px-2">
               {page} / {totalPages}
             </span>
             <button
               disabled={page === totalPages}
               onClick={() => setPage(p => p + 1)}
-              className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+              className="btn-secondary btn-sm disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Siguiente
             </button>

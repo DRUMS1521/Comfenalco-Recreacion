@@ -79,23 +79,23 @@ export default function Sidebar({ tab, setTab, isAdmin, isRecreador, isPromotor,
   return (
     <div className="group fixed left-0 top-0 h-screen z-50 flex flex-col
       w-16 hover:w-60 transition-[width] duration-300 ease-in-out
-      bg-gray-950 shadow-2xl overflow-hidden">
+      bg-ink-900 overflow-hidden">
 
       {/* Logo */}
       <div className="flex items-center gap-3 px-3 py-4 border-b border-white/10 shrink-0">
-        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shrink-0 shadow-lg p-1">
+        <div className="w-10 h-10 bg-white rounded-md flex items-center justify-center shrink-0 p-1">
           <img src={logo} alt="Comfenalco Tolima" className="w-full h-full object-contain" />
         </div>
         <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap overflow-hidden">
           <p className="text-white font-bold text-sm leading-tight">Comfenalco</p>
-          <p className="text-gray-500 text-[11px]">Servicios de Recreación</p>
+          <p className="text-ink-400 text-[11px]">Servicios de Recreación</p>
         </div>
       </div>
 
       {/* Usuario + reloj */}
       <div className="flex items-center gap-3 px-3 py-4 border-b border-white/10 shrink-0">
-        <div className="w-10 h-10 bg-primary-600 rounded-full flex items-center justify-center shrink-0
-          text-white font-bold text-sm shadow ring-2 ring-primary-500/30">
+        <div className="w-10 h-10 bg-primary-800 rounded-full flex items-center justify-center shrink-0
+          text-white font-bold text-sm ring-1 ring-accent-500/40">
           {getInitials(user?.full_name || user?.username)}
         </div>
         <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap overflow-hidden min-w-0">
@@ -113,10 +113,10 @@ export default function Sidebar({ tab, setTab, isAdmin, isRecreador, isPromotor,
             key={key}
             onClick={() => setTab(key)}
             title={label}
-            className={`w-full flex items-center gap-3 px-2 py-2.5 rounded-xl transition-all duration-150 group/item ${
+            className={`w-full flex items-center gap-3 px-2 py-2.5 rounded-md border-l-2 transition-colors duration-150 group/item ${
               tab === key
-                ? 'bg-primary-600 text-white shadow-lg shadow-primary-600/30'
-                : 'text-gray-400 hover:bg-white/8 hover:text-white'
+                ? 'bg-primary-800/60 border-accent-500 text-white'
+                : 'border-transparent text-ink-400 hover:bg-white/5 hover:text-white'
             }`}
           >
             <div className="w-6 h-6 shrink-0 flex items-center justify-center">
@@ -126,7 +126,7 @@ export default function Sidebar({ tab, setTab, isAdmin, isRecreador, isPromotor,
               {label}
             </span>
             {badge && (
-              <span className="shrink-0 bg-blue-500 text-white text-[10px] w-5 h-5 rounded-full
+              <span className="shrink-0 bg-accent-600 text-white text-[10px] w-5 h-5 rounded-full
                 flex items-center justify-center font-bold
                 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                 {badge}
@@ -142,8 +142,8 @@ export default function Sidebar({ tab, setTab, isAdmin, isRecreador, isPromotor,
             <button
               onClick={onNuevaSolicitud}
               title="Nueva Solicitud"
-              className="w-full flex items-center gap-3 px-2 py-2.5 rounded-xl
-                text-gray-400 hover:bg-white/8 hover:text-white transition-all duration-150"
+              className="w-full flex items-center gap-3 px-2 py-2.5 rounded-md border-l-2 border-transparent
+                text-ink-400 hover:bg-white/5 hover:text-accent-400 hover:border-accent-500 transition-colors duration-150"
             >
               <div className="w-6 h-6 shrink-0 flex items-center justify-center">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -163,8 +163,8 @@ export default function Sidebar({ tab, setTab, isAdmin, isRecreador, isPromotor,
         <button
           onClick={handleLogout}
           title="Salir"
-          className="w-full flex items-center gap-3 px-2 py-2.5 rounded-xl
-            text-gray-500 hover:bg-red-500/15 hover:text-red-400 transition-all duration-150"
+          className="w-full flex items-center gap-3 px-2 py-2.5 rounded-md border-l-2 border-transparent
+            text-ink-500 hover:bg-red-900/20 hover:text-red-400 hover:border-red-500 transition-colors duration-150"
         >
           <div className="w-6 h-6 shrink-0 flex items-center justify-center">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

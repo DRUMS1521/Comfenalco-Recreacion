@@ -158,14 +158,14 @@ export default function EstadoModal({ solicitud, solicitudes = [], onClose, onCo
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden max-h-[90vh] flex flex-col">
+      <div className="bg-white rounded-md border border-ink-200 w-full max-w-sm overflow-hidden max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="bg-gray-800 px-5 py-4 flex items-center justify-between shrink-0">
+        <div className="bg-ink-900 border-b-2 border-accent-500 px-5 py-4 flex items-center justify-between shrink-0">
           <div>
             <h3 className="text-white font-bold text-base">Cambiar Estado</h3>
-            <p className="text-gray-400 text-xs mt-0.5 truncate max-w-[220px]">{solicitud.empresa}</p>
+            <p className="text-ink-300 text-xs mt-0.5 truncate max-w-[220px]">{solicitud.empresa}</p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition">
+          <button onClick={onClose} className="text-ink-300 hover:text-white p-1 rounded-md hover:bg-white/10 transition-colors">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -177,10 +177,10 @@ export default function EstadoModal({ solicitud, solicitudes = [], onClose, onCo
             <>
               {/* Estado actual */}
               <div>
-                <p className="text-xs text-gray-400 mb-1.5">Estado actual</p>
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${ESTADO_CONFIG[solicitud.estado]?.bg || 'bg-gray-50 border-gray-200'}`}>
-                  <span className={`w-2.5 h-2.5 rounded-full ${ESTADO_CONFIG[solicitud.estado]?.color || 'bg-gray-400'}`} />
-                  <span className={`text-sm font-semibold ${ESTADO_CONFIG[solicitud.estado]?.text || 'text-gray-700'}`}>
+                <p className="text-xs text-ink-400 mb-1.5">Estado actual</p>
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${ESTADO_CONFIG[solicitud.estado]?.bg || 'bg-ink-50 border-ink-200'}`}>
+                  <span className={`w-2.5 h-2.5 rounded-full ${ESTADO_CONFIG[solicitud.estado]?.color || 'bg-ink-400'}`} />
+                  <span className={`text-sm font-semibold ${ESTADO_CONFIG[solicitud.estado]?.text || 'text-ink-700'}`}>
                     {ESTADO_CONFIG[solicitud.estado]?.label || solicitud.estado}
                   </span>
                 </div>
@@ -188,15 +188,15 @@ export default function EstadoModal({ solicitud, solicitudes = [], onClose, onCo
 
               {/* Selector de estado */}
               <div>
-                <p className="text-xs text-gray-400 mb-1.5">Nuevo estado</p>
+                <p className="text-xs text-ink-400 mb-1.5">Nuevo estado</p>
                 <div className="grid grid-cols-2 gap-2">
                   {ESTADOS.map((e) => {
                     const c = ESTADO_CONFIG[e]
                     const isActive = selected === e
                     return (
                       <button key={e} onClick={() => { setSelected(e); setConfirming(false); setTipoHoraExtra('') }}
-                        className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition
-                          ${isActive ? `border-current ${c.bg} ${c.text}` : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'}`}>
+                        className={`flex items-center gap-2 px-3 py-2.5 rounded-md border text-sm font-medium transition-colors
+                          ${isActive ? `border-current ${c.bg} ${c.text}` : 'border-ink-200 text-ink-600 hover:border-ink-400 hover:bg-ink-50'}`}>
                         <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${c.color}`} />
                         {c.label}
                       </button>
@@ -207,7 +207,7 @@ export default function EstadoModal({ solicitud, solicitudes = [], onClose, onCo
 
               {/* Asignación de recreadores (multi-select) */}
               {needsRecreador && (
-                <div className="border border-blue-100 bg-blue-50 rounded-xl p-3 space-y-2">
+                <div className="border border-blue-100 bg-blue-50 rounded-md p-3 space-y-2">
                   <p className="text-xs font-semibold text-blue-700 flex items-center gap-1.5">
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -226,7 +226,7 @@ export default function EstadoModal({ solicitud, solicitudes = [], onClose, onCo
                       Cargando recreadores...
                     </div>
                   ) : recreadores.length === 0 ? (
-                    <p className="text-xs text-gray-500">No hay recreadores disponibles</p>
+                    <p className="text-xs text-ink-500">No hay recreadores disponibles</p>
                   ) : (
                     <div className="space-y-1.5">
                       {recreadores.map((r) => {
@@ -246,11 +246,11 @@ export default function EstadoModal({ solicitud, solicitudes = [], onClose, onCo
                                 ? 'border-red-400 bg-red-50 text-red-700 font-semibold shadow-sm'
                                 : isChecked
                                 ? 'border-blue-400 bg-white text-blue-700 font-semibold shadow-sm'
-                                : 'border-transparent bg-white/60 text-gray-700 hover:bg-white hover:border-gray-200'}`}
+                                : 'border-transparent bg-white/60 text-ink-700 hover:bg-white hover:border-ink-200'}`}
                           >
                             {/* Checkbox visual */}
                             <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition
-                              ${isChecked ? 'bg-blue-500 border-blue-500' : 'border-gray-300 bg-white'}`}>
+                              ${isChecked ? 'bg-blue-500 border-blue-500' : 'border-ink-300 bg-white'}`}>
                               {isChecked && (
                                 <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
                                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
@@ -272,11 +272,11 @@ export default function EstadoModal({ solicitud, solicitudes = [], onClose, onCo
                                 )}
                               </div>
                               <div className="flex items-center gap-1.5 mt-0.5">
-                                <div className="flex-1 bg-gray-100 rounded-full h-1">
+                                <div className="flex-1 bg-ink-100 rounded-full h-1">
                                   <div className={`h-1 rounded-full ${barCol}`} style={{ width: `${pct}%` }} />
                                 </div>
-                                <p className={`text-[10px] shrink-0 ${excRec ? 'text-red-500 font-semibold' : 'text-gray-400'}`}>
-                                  {fmt(hActual)}/{LIMITE_HORAS}h{excRec ? ' ⚠' : ''}
+                                <p className={`text-[10px] shrink-0 ${excRec ? 'text-red-600 font-semibold' : 'text-ink-400'}`}>
+                                  {fmt(hActual)}/{LIMITE_HORAS}h
                                 </p>
                               </div>
                             </div>
@@ -290,7 +290,7 @@ export default function EstadoModal({ solicitud, solicitudes = [], onClose, onCo
 
               {/* Alerta de conflicto de horario */}
               {needsRecreador && hayConflicto && (
-                <div className="border border-red-200 bg-red-50 rounded-xl p-3 space-y-2">
+                <div className="border border-red-200 bg-red-50 rounded-md p-3 space-y-2">
                   <div className="flex items-start gap-2">
                     <svg className="w-4 h-4 text-red-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -314,7 +314,7 @@ export default function EstadoModal({ solicitud, solicitudes = [], onClose, onCo
 
               {/* Advertencia de exceso de horas */}
               {needsRecreador && selectedIds.length > 0 && hayExceso && (
-                <div className="border border-orange-200 bg-orange-50 rounded-xl p-3 space-y-3">
+                <div className="border border-orange-200 bg-orange-50 rounded-md p-3 space-y-3">
                   <div className="flex items-start gap-2">
                     <svg className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -341,14 +341,14 @@ export default function EstadoModal({ solicitud, solicitudes = [], onClose, onCo
                           className={`w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg border text-sm transition
                             ${tipoHoraExtra === t.value
                               ? 'border-orange-400 bg-white text-orange-700 font-semibold shadow-sm'
-                              : 'border-orange-200 bg-white/60 text-gray-700 hover:bg-white'}`}>
+                              : 'border-orange-200 bg-white/60 text-ink-700 hover:bg-white'}`}>
                           <div className={`w-3 h-3 rounded-full border-2 shrink-0 flex items-center justify-center
-                            ${tipoHoraExtra === t.value ? 'border-orange-500' : 'border-gray-300'}`}>
+                            ${tipoHoraExtra === t.value ? 'border-orange-500' : 'border-ink-300'}`}>
                             {tipoHoraExtra === t.value && <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />}
                           </div>
                           <div className="min-w-0">
                             <p className="leading-tight">{t.label}</p>
-                            <p className="text-xs text-gray-400 leading-tight">{t.desc}</p>
+                            <p className="text-xs text-ink-400 leading-tight">{t.desc}</p>
                           </div>
                         </button>
                       ))}
@@ -358,12 +358,10 @@ export default function EstadoModal({ solicitud, solicitudes = [], onClose, onCo
               )}
 
               <div className="flex gap-3 pt-1">
-                <button onClick={onClose}
-                  className="flex-1 border border-gray-300 text-gray-600 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-50 transition">
+                <button onClick={onClose} className="btn-secondary flex-1">
                   Cancelar
                 </button>
-                <button onClick={handleContinue} disabled={!canProceed}
-                  className="flex-1 bg-gray-800 hover:bg-gray-900 disabled:opacity-40 text-white py-2.5 rounded-xl text-sm font-bold transition">
+                <button onClick={handleContinue} disabled={!canProceed} className="btn-primary flex-1">
                   Continuar
                 </button>
               </div>
@@ -378,23 +376,22 @@ export default function EstadoModal({ solicitud, solicitudes = [], onClose, onCo
                       d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
                 </div>
-                <h4 className="text-gray-800 font-bold text-base">Cantidad incompleta</h4>
-                <p className="text-gray-500 text-sm mt-2 leading-relaxed">
+                <h4 className="text-ink-800 font-bold text-base">Cantidad incompleta</h4>
+                <p className="text-ink-500 text-sm mt-2 leading-relaxed">
                   La solicitud requiere{' '}
-                  <span className="font-black text-gray-800">{solicitud.cantidad_recreadores}</span>{' '}
+                  <span className="font-black text-ink-800">{solicitud.cantidad_recreadores}</span>{' '}
                   recreador{solicitud.cantidad_recreadores !== 1 ? 'es' : ''} y solo has asignado{' '}
                   <span className="font-black text-amber-600">{selectedIds.length}</span>.
                 </p>
-                <p className="text-gray-400 text-xs mt-2">¿Deseas continuar de todas formas?</p>
+                <p className="text-ink-400 text-xs mt-2">¿Deseas continuar de todas formas?</p>
               </div>
 
               <div className="flex gap-3">
-                <button onClick={() => { setShowCountWarning(false); setConfirming(false) }}
-                  className="flex-1 border border-gray-300 text-gray-600 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-50 transition">
+                <button onClick={() => { setShowCountWarning(false); setConfirming(false) }} className="btn-secondary flex-1">
                   Volver
                 </button>
                 <button onClick={() => { setShowCountWarning(false); setConfirming(true) }}
-                  className="flex-1 bg-amber-500 hover:bg-amber-600 text-white py-2.5 rounded-xl text-sm font-bold transition">
+                  className="btn flex-1 bg-amber-600 text-white border border-amber-600 hover:bg-amber-700 hover:border-amber-700">
                   Sí, continuar
                 </button>
               </div>
@@ -409,18 +406,18 @@ export default function EstadoModal({ solicitud, solicitudes = [], onClose, onCo
                       d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <h4 className="text-gray-800 font-bold text-base">¿Estás seguro?</h4>
+                <h4 className="text-ink-800 font-bold text-base">¿Estás seguro?</h4>
                 {needsRecreador && selectedRecreadores.length > 0 ? (
-                  <p className="text-gray-500 text-sm mt-1 leading-relaxed">
+                  <p className="text-ink-500 text-sm mt-1 leading-relaxed">
                     Estás asignando una actividad de{' '}
                     <span className="font-black text-primary-600">{fmt(horasNuevas)}h</span>{' '}
                     a{' '}
-                    <span className="font-black text-gray-800">{selectedRecreadores.length}</span>{' '}
+                    <span className="font-black text-ink-800">{selectedRecreadores.length}</span>{' '}
                     recreador{selectedRecreadores.length !== 1 ? 'es' : ''}.
                   </p>
                 ) : (
-                  <p className="text-gray-500 text-sm mt-1">
-                    Solicitud de <span className="font-semibold text-gray-700">{solicitud.empresa}</span>
+                  <p className="text-ink-500 text-sm mt-1">
+                    Solicitud de <span className="font-semibold text-ink-700">{solicitud.empresa}</span>
                   </p>
                 )}
                 <div className={`inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-full border ${cfg.bg} ${cfg.text}`}>
@@ -434,7 +431,7 @@ export default function EstadoModal({ solicitud, solicitudes = [], onClose, onCo
                     {selectedRecreadores.map((r) => {
                       const e = excedencias.find((x) => x.id === r.id)
                       return (
-                        <div key={r.id} className="flex items-center gap-2 justify-center bg-blue-50 border border-blue-100 rounded-xl px-4 py-2">
+                        <div key={r.id} className="flex items-center gap-2 justify-center bg-blue-50 border border-blue-100 rounded-md px-4 py-2">
                           <div className="w-7 h-7 rounded-full bg-primary-100 flex items-center justify-center shrink-0">
                             <span className="text-primary-700 text-xs font-bold">
                               {r.full_name?.charAt(0) || r.username.charAt(0).toUpperCase()}
@@ -454,7 +451,7 @@ export default function EstadoModal({ solicitud, solicitudes = [], onClose, onCo
                 )}
 
                 {hayConflicto && (
-                  <div className="mt-3 text-left border border-red-200 bg-red-50 rounded-xl p-3 space-y-1">
+                  <div className="mt-3 text-left border border-red-200 bg-red-50 rounded-md p-3 space-y-1">
                     <p className="text-xs font-bold text-red-800 flex items-center gap-1.5">
                       <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -471,7 +468,7 @@ export default function EstadoModal({ solicitud, solicitudes = [], onClose, onCo
                 )}
 
                 {hayExceso && tipoHoraExtra && (
-                  <div className="mt-3 text-left border border-orange-200 bg-orange-50 rounded-xl p-3 space-y-2">
+                  <div className="mt-3 text-left border border-orange-200 bg-orange-50 rounded-md p-3 space-y-2">
                     <div className="flex items-center gap-2">
                       <svg className="w-4 h-4 text-orange-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -496,12 +493,10 @@ export default function EstadoModal({ solicitud, solicitudes = [], onClose, onCo
               </div>
 
               <div className="flex gap-3">
-                <button onClick={() => { setConfirming(false); setShowCountWarning(false) }} disabled={loading}
-                  className="flex-1 border border-gray-300 text-gray-600 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-50 transition disabled:opacity-50">
+                <button onClick={() => { setConfirming(false); setShowCountWarning(false) }} disabled={loading} className="btn-secondary flex-1">
                   Volver
                 </button>
-                <button onClick={handleConfirm} disabled={loading}
-                  className="flex-1 bg-primary-600 hover:bg-primary-700 text-white py-2.5 rounded-xl text-sm font-bold transition disabled:opacity-60 flex items-center justify-center gap-2">
+                <button onClick={handleConfirm} disabled={loading} className="btn-primary flex-1">
                   {loading
                     ? <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />Guardando...</>
                     : 'Sí, confirmar'}

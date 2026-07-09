@@ -89,13 +89,13 @@ export default function UserModal({ user, onClose, onSave, saving }) {
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg animate-in fade-in zoom-in duration-200 overflow-hidden">
+      <div className="relative bg-white rounded-md border border-ink-200 w-full max-w-lg animate-in fade-in zoom-in duration-200 overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-4">
+        <div className="bg-ink-900 border-b-2 border-accent-500 px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-9 h-9 bg-white/10 rounded-md flex items-center justify-center">
+                <svg className="w-5 h-5 text-accent-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   {isEdit ? (
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                       d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -107,10 +107,10 @@ export default function UserModal({ user, onClose, onSave, saving }) {
               </div>
               <div>
                 <h2 className="text-white font-bold text-lg">{isEdit ? 'Editar Usuario' : 'Nuevo Usuario'}</h2>
-                <p className="text-white/70 text-xs">{isEdit ? `Editando a ${user.full_name}` : 'Crear un nuevo miembro del equipo'}</p>
+                <p className="text-ink-300 text-xs">{isEdit ? `Editando a ${user.full_name}` : 'Crear un nuevo miembro del equipo'}</p>
               </div>
             </div>
-            <button onClick={onClose} className="text-white/70 hover:text-white transition p-1 rounded-lg hover:bg-white/10">
+            <button onClick={onClose} className="text-ink-300 hover:text-white transition-colors p-1 rounded-md hover:bg-white/10">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -122,55 +122,49 @@ export default function UserModal({ user, onClose, onSave, saving }) {
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* Nombre completo */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Nombre completo *</label>
+            <label className="field-label">Nombre completo *</label>
             <input
               ref={nameRef}
               type="text"
               value={form.full_name}
               onChange={(e) => setForm({ ...form, full_name: e.target.value })}
               placeholder="Ej: María García López"
-              className={`w-full px-3 py-2.5 text-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition ${
-                errors.full_name ? 'border-red-300 bg-red-50/50' : 'border-gray-200 bg-gray-50'
-              }`}
+              className={`field-input ${errors.full_name ? 'border-red-500 focus:border-red-600 focus:ring-red-600' : ''}`}
             />
-            {errors.full_name && <p className="text-red-500 text-xs mt-1">{errors.full_name}</p>}
+            {errors.full_name && <p className="text-red-700 text-xs mt-1">{errors.full_name}</p>}
           </div>
 
           {/* Username (solo crear) */}
           {!isEdit && (
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Usuario *</label>
+              <label className="field-label">Usuario *</label>
               <input
                 type="text"
                 value={form.username}
                 onChange={(e) => setForm({ ...form, username: e.target.value.toLowerCase().replace(/\s/g, '.') })}
                 placeholder="Ej: maria.garcia"
-                className={`w-full px-3 py-2.5 text-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition ${
-                  errors.username ? 'border-red-300 bg-red-50/50' : 'border-gray-200 bg-gray-50'
-                }`}
+                className={`field-input ${errors.username ? 'border-red-500 focus:border-red-600 focus:ring-red-600' : ''}`}
               />
-              {errors.username && <p className="text-red-500 text-xs mt-1">{errors.username}</p>}
+              {errors.username && <p className="text-red-700 text-xs mt-1">{errors.username}</p>}
             </div>
           )}
 
           {/* Email */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Email *</label>
+            <label className="field-label">Email *</label>
             <input
               type="email"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               placeholder="Ej: maria.garcia@comfenalcotolima.com"
-              className={`w-full px-3 py-2.5 text-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition ${
-                errors.email ? 'border-red-300 bg-red-50/50' : 'border-gray-200 bg-gray-50'
-              }`}
+              className={`field-input ${errors.email ? 'border-red-500 focus:border-red-600 focus:ring-red-600' : ''}`}
             />
-            {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+            {errors.email && <p className="text-red-700 text-xs mt-1">{errors.email}</p>}
           </div>
 
           {/* Contraseña */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">
+            <label className="field-label">
               Contraseña {isEdit ? '(dejar vacío para no cambiar)' : '*'}
             </label>
             <input
@@ -178,53 +172,41 @@ export default function UserModal({ user, onClose, onSave, saving }) {
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               placeholder={isEdit ? '••••••••' : 'Mínimo 6 caracteres'}
-              className={`w-full px-3 py-2.5 text-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition ${
-                errors.password ? 'border-red-300 bg-red-50/50' : 'border-gray-200 bg-gray-50'
-              }`}
+              className={`field-input ${errors.password ? 'border-red-500 focus:border-red-600 focus:ring-red-600' : ''}`}
             />
-            {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
+            {errors.password && <p className="text-red-700 text-xs mt-1">{errors.password}</p>}
           </div>
 
           {/* Cargo */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Cargo *</label>
+            <label className="field-label">Cargo *</label>
             <select
               value={form.cargo}
               onChange={(e) => setForm({ ...form, cargo: e.target.value })}
-              className={`w-full px-3 py-2.5 text-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition appearance-none bg-gray-50 ${
-                errors.cargo ? 'border-red-300 bg-red-50/50' : 'border-gray-200'
-              }`}
+              className={`field-select ${errors.cargo ? 'border-red-500 focus:border-red-600 focus:ring-red-600' : ''}`}
             >
               {CARGOS.map((c) => (
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
-            {errors.cargo && <p className="text-red-500 text-xs mt-1">{errors.cargo}</p>}
+            {errors.cargo && <p className="text-red-700 text-xs mt-1">{errors.cargo}</p>}
             {cargoDesc && (
-              <div className="mt-2 flex items-start gap-2 bg-primary-50 border border-primary-100 rounded-lg px-3 py-2">
-                <svg className="w-3.5 h-3.5 text-primary-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="mt-2 flex items-start gap-2 border-l-2 border-primary-700 bg-primary-50 px-3 py-2">
+                <svg className="w-3.5 h-3.5 text-primary-800 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                     d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <p className="text-xs text-primary-700">{cargoDesc}</p>
+                <p className="text-xs text-primary-800">{cargoDesc}</p>
               </div>
             )}
           </div>
 
           {/* Actions */}
           <div className="flex items-center justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-xl transition"
-            >
+            <button type="button" onClick={onClose} className="btn-secondary">
               Cancelar
             </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="px-5 py-2.5 text-sm font-bold text-white bg-primary-600 hover:bg-primary-700 rounded-xl shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
+            <button type="submit" disabled={saving} className="btn-primary">
               {saving ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

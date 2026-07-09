@@ -37,7 +37,7 @@ function EventCard({ sol, onClick }) {
   return (
     <button
       onClick={() => onClick(sol)}
-      className="w-full text-left bg-primary-600 hover:bg-primary-700 text-white rounded-lg px-2 py-1.5 text-[11px] transition shadow-sm mb-1 last:mb-0"
+      className="w-full text-left bg-primary-800 hover:bg-primary-900 text-white rounded-md px-2 py-1.5 text-[11px] transition-colors mb-1 last:mb-0"
     >
       <p className="font-bold truncate leading-tight">{sol.empresa}</p>
       <p className="text-primary-200 truncate leading-tight">
@@ -135,24 +135,24 @@ export default function CalendarAdminView({ solicitudes, onVerDetalle }) {
       {/* Navegación de semana */}
       <div className="flex items-center justify-between gap-2">
         <button onClick={prevWeek}
-          className="p-2 rounded-lg hover:bg-gray-100 transition text-gray-600">
+          className="p-2 rounded-md hover:bg-ink-100 transition-colors text-ink-600">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
         <div className="text-center flex-1">
-          <h3 className="font-bold text-gray-800 text-sm sm:text-base">{weekLabel}</h3>
-          <p className="text-xs text-gray-400 mt-0.5">
+          <h3 className="font-bold text-ink-800 text-sm sm:text-base">{weekLabel}</h3>
+          <p className="text-xs text-ink-400 mt-0.5">
             {programadas.length} tarea{programadas.length !== 1 ? 's' : ''} programada{programadas.length !== 1 ? 's' : ''}
           </p>
         </div>
         <div className="flex items-center gap-1">
           <button onClick={goToday}
-            className="hidden sm:block text-xs text-primary-600 hover:text-primary-700 font-semibold px-2 py-1 rounded-lg hover:bg-primary-50 transition">
+            className="hidden sm:block text-xs text-primary-800 hover:text-accent-700 font-semibold uppercase tracking-wide px-2 py-1 rounded-md hover:bg-ink-100 transition-colors">
             Hoy
           </button>
           <button onClick={nextWeek}
-            className="p-2 rounded-lg hover:bg-gray-100 transition text-gray-600">
+            className="p-2 rounded-md hover:bg-ink-100 transition-colors text-ink-600">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
@@ -166,16 +166,16 @@ export default function CalendarAdminView({ solicitudes, onVerDetalle }) {
           <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-primary-600" />
         </div>
       ) : recreadores.length === 0 ? (
-        <div className="text-center py-10 text-gray-400">
+        <div className="text-center py-10 text-ink-400">
           <p className="text-sm">No hay recreadores registrados</p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-gray-200">
+        <div className="overflow-x-auto rounded-md border border-ink-200">
           <table className="w-full border-collapse min-w-[640px]">
             <thead>
-              <tr className="bg-gray-50">
+              <tr className="bg-ink-50">
                 {/* Columna de recreadores */}
-                <th className="text-left px-3 py-2.5 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200 w-32 sticky left-0 bg-gray-50 z-10">
+                <th className="text-left px-3 py-2.5 text-xs font-bold text-ink-500 uppercase tracking-wider border-b border-ink-200 w-32 sticky left-0 bg-ink-50 z-10">
                   Recreador
                 </th>
                 {/* Columnas de días */}
@@ -184,13 +184,13 @@ export default function CalendarAdminView({ solicitudes, onVerDetalle }) {
                   const isHoy = ymd === today
                   return (
                     <th key={ymd}
-                      className={`px-2 py-2 text-center border-b border-gray-200 min-w-[110px] ${isHoy ? 'bg-primary-50' : ''}`}>
-                      <p className={`text-xs font-bold uppercase tracking-wide ${isHoy ? 'text-primary-700' : 'text-gray-500'}`}>
+                      className={`px-2 py-2 text-center border-b border-ink-200 min-w-[110px] ${isHoy ? 'bg-primary-50' : ''}`}>
+                      <p className={`text-xs font-bold uppercase tracking-wide ${isHoy ? 'text-primary-800' : 'text-ink-500'}`}>
                         {DIAS_SEMANA[idx]}
                       </p>
-                      <p className={`text-sm font-bold mt-0.5 ${isHoy ? 'text-primary-600' : 'text-gray-700'}`}>
+                      <p className={`text-sm font-bold mt-0.5 ${isHoy ? 'text-primary-800' : 'text-ink-700'}`}>
                         {day.getDate()}
-                        {isHoy && <span className="ml-1 text-[10px] bg-primary-600 text-white px-1.5 py-0.5 rounded-full align-middle">Hoy</span>}
+                        {isHoy && <span className="ml-1 text-[9px] uppercase tracking-wide bg-accent-600 text-white px-1.5 py-0.5 rounded align-middle">Hoy</span>}
                       </p>
                     </th>
                   )
@@ -205,13 +205,13 @@ export default function CalendarAdminView({ solicitudes, onVerDetalle }) {
                 const horasDisplay = horas % 1 === 0 ? horas : horas.toFixed(1)
                 const pct = Math.min((horas / LIMITE_HORAS) * 100, 100)
                 const barColor = horas >= LIMITE_HORAS ? 'bg-red-500' : horas >= LIMITE_HORAS * 0.8 ? 'bg-yellow-400' : 'bg-green-500'
-                const textColor = horas >= LIMITE_HORAS ? 'text-red-600' : horas >= LIMITE_HORAS * 0.8 ? 'text-yellow-600' : 'text-gray-500'
+                const textColor = horas >= LIMITE_HORAS ? 'text-red-600' : horas >= LIMITE_HORAS * 0.8 ? 'text-yellow-600' : 'text-ink-500'
                 return (
                   <tr key={rec.id}
-                    className={`border-b border-gray-100 last:border-b-0 ${rIdx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
+                    className={`border-b border-ink-100 last:border-b-0 ${rIdx % 2 === 0 ? 'bg-white' : 'bg-ink-50'}`}>
 
                     {/* Nombre del recreador */}
-                    <td className={`px-3 py-2 sticky left-0 z-10 border-r border-gray-100 ${rIdx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
+                    <td className={`px-3 py-2 sticky left-0 z-10 border-r border-ink-100 ${rIdx % 2 === 0 ? 'bg-white' : 'bg-ink-50'}`}>
                       <div className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-full bg-primary-100 flex items-center justify-center shrink-0">
                           <span className="text-primary-700 text-xs font-bold">
@@ -219,7 +219,7 @@ export default function CalendarAdminView({ solicitudes, onVerDetalle }) {
                           </span>
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs font-semibold text-gray-800 leading-tight truncate">
+                          <p className="text-xs font-semibold text-ink-800 leading-tight truncate">
                             {rec.full_name?.split(' ')[0] || rec.username}
                           </p>
                           {tieneTareas ? (
@@ -227,12 +227,12 @@ export default function CalendarAdminView({ solicitudes, onVerDetalle }) {
                               <p className={`text-[10px] font-medium leading-tight ${textColor}`}>
                                 {horasDisplay} / {LIMITE_HORAS} hrs
                               </p>
-                              <div className="w-full bg-gray-100 rounded-full h-1 mt-0.5">
+                              <div className="w-full bg-ink-100 rounded-full h-1 mt-0.5">
                                 <div className={`h-1 rounded-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
                               </div>
                             </>
                           ) : (
-                            <p className="text-[10px] text-gray-300 leading-tight">Sin tareas</p>
+                            <p className="text-[10px] text-ink-300 leading-tight">Sin tareas</p>
                           )}
                         </div>
                       </div>
@@ -245,7 +245,7 @@ export default function CalendarAdminView({ solicitudes, onVerDetalle }) {
                       const eventos = tareasPorDia[ymd] || []
                       return (
                         <td key={ymd}
-                          className={`px-1.5 py-1.5 align-top border-r border-gray-100 last:border-r-0 min-h-[52px] ${isHoy ? 'bg-primary-50/30' : ''}`}>
+                          className={`px-1.5 py-1.5 align-top border-r border-ink-100 last:border-r-0 min-h-[52px] ${isHoy ? 'bg-primary-50/30' : ''}`}>
                           {eventos.length === 0
                             ? <EmptyCell />
                             : eventos.map((ev) => (
@@ -265,7 +265,7 @@ export default function CalendarAdminView({ solicitudes, onVerDetalle }) {
 
       {/* Solicitudes programadas SIN recreador asignado */}
       {sinAsignar.length > 0 && (
-        <div className="border border-orange-200 bg-orange-50 rounded-xl overflow-hidden">
+        <div className="border border-orange-200 bg-orange-50 rounded-md overflow-hidden">
           <div className="px-4 py-2.5 flex items-center gap-2">
             <svg className="w-4 h-4 text-orange-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -296,8 +296,13 @@ export default function CalendarAdminView({ solicitudes, onVerDetalle }) {
 
       {/* Vacío total */}
       {programadas.length === 0 && !loadingRec && (
-        <div className="text-center py-10 text-gray-400">
-          <div className="text-4xl mb-2">📅</div>
+        <div className="text-center py-10 text-ink-400">
+          <div className="w-11 h-11 mx-auto mb-3 rounded-md border border-ink-200 flex items-center justify-center text-ink-300">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
           <p className="text-sm font-medium">Sin tareas programadas esta semana</p>
           <p className="text-xs mt-1">Navega a otra semana o programa solicitudes pendientes</p>
         </div>

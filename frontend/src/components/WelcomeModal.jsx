@@ -15,17 +15,48 @@ function greeting() {
 function toYMD(d) { return d.toISOString().split('T')[0] }
 
 /* ── Tarjeta de ítem pendiente ── */
-function Item({ icon, label, value, color }) {
+function Item({ icon, label, value, accent }) {
   return (
-    <div className={`flex items-center gap-3 rounded-xl p-3 ${color}`}>
-      <span className="text-2xl shrink-0">{icon}</span>
+    <div className={`flex items-center gap-3 border-l-2 bg-ink-50 p-3 ${accent}`}>
+      <div className="w-8 h-8 rounded-md border border-ink-200 bg-white flex items-center justify-center shrink-0 text-ink-700">
+        {icon}
+      </div>
       <div>
-        <p className="text-xs font-medium opacity-75 leading-none">{label}</p>
-        <p className="text-xl font-black leading-tight mt-0.5">{value}</p>
+        <p className="text-xs font-medium text-ink-500 leading-none">{label}</p>
+        <p className="text-xl font-bold text-ink-800 leading-tight mt-0.5">{value}</p>
       </div>
     </div>
   )
 }
+
+const IconClipboard = (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+  </svg>
+)
+const IconRefresh = (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+  </svg>
+)
+const IconCheck = (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+  </svg>
+)
+const IconClock = (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+)
+const IconWarning = (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+  </svg>
+)
 
 export default function WelcomeModal({ user, solicitudes, onClose }) {
   const isAdmin    = user?.is_admin
@@ -74,17 +105,19 @@ export default function WelcomeModal({ user, solicitudes, onClose }) {
           {hayAlgo ? (
             <div className="space-y-2">
               {data.pendientes > 0 && (
-                <Item icon="📋" label="Solicitudes pendientes de revisar" value={data.pendientes} color="bg-yellow-50 text-yellow-800" />
+                <Item icon={IconClipboard} label="Solicitudes pendientes de revisar" value={data.pendientes} accent="border-yellow-500" />
               )}
               {data.porCorregir > 0 && (
-                <Item icon="🔄" label="Solicitudes devueltas para corregir" value={data.porCorregir} color="bg-orange-50 text-orange-800" />
+                <Item icon={IconRefresh} label="Solicitudes devueltas para corregir" value={data.porCorregir} accent="border-orange-500" />
               )}
             </div>
           ) : (
-            <div className="flex flex-col items-center py-4 text-emerald-600">
-              <span className="text-5xl mb-2">🎉</span>
-              <p className="font-bold text-base">¡Todo al día!</p>
-              <p className="text-sm text-gray-400 mt-1">No hay solicitudes pendientes en este momento.</p>
+            <div className="flex flex-col items-center py-4 text-primary-700">
+              <div className="w-12 h-12 rounded-md border border-ink-200 flex items-center justify-center mb-2 text-primary-700">
+                {IconCheck}
+              </div>
+              <p className="font-bold text-base text-ink-800">Todo al día</p>
+              <p className="text-sm text-ink-400 mt-1">No hay solicitudes pendientes en este momento.</p>
             </div>
           )}
         </>
@@ -98,32 +131,34 @@ export default function WelcomeModal({ user, solicitudes, onClose }) {
           {hayAlgo ? (
             <div className="space-y-2">
               {data.porFinalizar?.length > 0 && (
-                <Item icon="✅" label="Actividades listas para finalizar" value={data.porFinalizar.length} color="bg-emerald-50 text-emerald-800" />
+                <Item icon={IconCheck} label="Actividades listas para finalizar" value={data.porFinalizar.length} accent="border-primary-700" />
               )}
               {data.hoyPendientes?.length > 0 && (
-                <div className="bg-blue-50 rounded-xl p-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xl">📅</span>
-                    <p className="text-xs font-semibold text-blue-700">Actividades de hoy por venir</p>
+                <div className="border-l-2 border-blue-600 bg-ink-50 p-3">
+                  <div className="flex items-center gap-2 mb-2 text-blue-700">
+                    {IconClock}
+                    <p className="text-xs font-semibold uppercase tracking-wide">Actividades de hoy por venir</p>
                   </div>
                   <div className="space-y-1 pl-1">
                     {data.hoyPendientes.slice(0, 3).map(s => (
-                      <p key={s.id} className="text-xs text-blue-800 font-medium">
+                      <p key={s.id} className="text-xs text-ink-700 font-medium">
                         · {s.empresa} — {s.hora_inicio}
                       </p>
                     ))}
                     {data.hoyPendientes.length > 3 && (
-                      <p className="text-xs text-blue-500">+{data.hoyPendientes.length - 3} más...</p>
+                      <p className="text-xs text-ink-400">+{data.hoyPendientes.length - 3} más...</p>
                     )}
                   </div>
                 </div>
               )}
             </div>
           ) : (
-            <div className="flex flex-col items-center py-4 text-emerald-600">
-              <span className="text-5xl mb-2">😎</span>
-              <p className="font-bold text-base">¡Sin pendientes hoy!</p>
-              <p className="text-sm text-gray-400 mt-1">No tienes actividades urgentes por ahora.</p>
+            <div className="flex flex-col items-center py-4 text-primary-700">
+              <div className="w-12 h-12 rounded-md border border-ink-200 flex items-center justify-center mb-2 text-primary-700">
+                {IconCheck}
+              </div>
+              <p className="font-bold text-base text-ink-800">Sin pendientes hoy</p>
+              <p className="text-sm text-ink-400 mt-1">No tienes actividades urgentes por ahora.</p>
             </div>
           )}
         </>
@@ -135,23 +170,25 @@ export default function WelcomeModal({ user, solicitudes, onClose }) {
         <>
           {data.porCorregir?.length > 0 ? (
             <div className="space-y-2">
-              <Item icon="⚠️" label="Solicitudes devueltas para corregir" value={data.porCorregir.length} color="bg-orange-50 text-orange-800" />
-              <div className="bg-orange-50 rounded-xl px-3 py-2 space-y-1">
+              <Item icon={IconWarning} label="Solicitudes devueltas para corregir" value={data.porCorregir.length} accent="border-orange-500" />
+              <div className="border-l-2 border-orange-500 bg-ink-50 px-3 py-2 space-y-1">
                 {data.porCorregir.slice(0, 3).map(s => (
-                  <p key={s.id} className="text-xs text-orange-700 font-medium">
+                  <p key={s.id} className="text-xs text-ink-700 font-medium">
                     · {s.empresa} — {s.fecha_evento}
                   </p>
                 ))}
                 {data.porCorregir.length > 3 && (
-                  <p className="text-xs text-orange-400">+{data.porCorregir.length - 3} más...</p>
+                  <p className="text-xs text-ink-400">+{data.porCorregir.length - 3} más...</p>
                 )}
               </div>
             </div>
           ) : (
-            <div className="flex flex-col items-center py-4 text-emerald-600">
-              <span className="text-5xl mb-2">👌</span>
-              <p className="font-bold text-base">¡Todo en orden!</p>
-              <p className="text-sm text-gray-400 mt-1">No tienes solicitudes devueltas por corregir.</p>
+            <div className="flex flex-col items-center py-4 text-primary-700">
+              <div className="w-12 h-12 rounded-md border border-ink-200 flex items-center justify-center mb-2 text-primary-700">
+                {IconCheck}
+              </div>
+              <p className="font-bold text-base text-ink-800">Todo en orden</p>
+              <p className="text-sm text-ink-400 mt-1">No tienes solicitudes devueltas por corregir.</p>
             </div>
           )}
         </>
@@ -165,31 +202,27 @@ export default function WelcomeModal({ user, solicitudes, onClose }) {
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div
         style={{ animation: 'welcomeIn .4s cubic-bezier(.22,1,.36,1)' }}
-        className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden"
+        className="bg-white rounded-md border border-ink-200 w-full max-w-sm overflow-hidden"
       >
-        {/* Header con gradiente */}
-        <div className="bg-gradient-to-br from-primary-600 to-primary-800 px-6 pt-6 pb-8 text-white relative overflow-hidden">
-          {/* Círculos decorativos */}
-          <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/10" />
-          <div className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full bg-white/10" />
-
-          <div className="relative flex items-center gap-4">
-            <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center shrink-0 text-2xl font-black shadow-inner">
+        {/* Header */}
+        <div className="bg-ink-900 border-b-2 border-accent-500 px-6 pt-6 pb-6 text-white">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-primary-800 rounded-md flex items-center justify-center shrink-0 text-xl font-bold ring-1 ring-accent-500/40">
               {getInitials(user?.full_name || user?.username)}
             </div>
             <div>
-              <p className="text-primary-200 text-sm font-medium">{greeting()},</p>
-              <p className="text-white font-black text-lg leading-tight">
+              <p className="text-ink-300 text-sm font-medium">{greeting()},</p>
+              <p className="text-white font-bold text-lg leading-tight">
                 {user?.full_name?.split(' ')[0] || user?.username}
               </p>
-              <p className="text-primary-300 text-xs mt-0.5">
+              <p className="text-ink-400 text-xs mt-0.5 uppercase tracking-wide">
                 {isAdmin ? 'Administrador' : isRecreador ? 'Recreador' : isPromotor ? 'Promotor' : 'Usuario'}
               </p>
             </div>
           </div>
 
-          <p className="relative mt-4 text-sm text-primary-100 font-medium">
-            Aquí tienes un resumen de lo que te espera hoy 👇
+          <p className="mt-4 text-sm text-ink-300 font-medium">
+            Aquí tienes un resumen de lo que te espera hoy.
           </p>
         </div>
 
@@ -200,11 +233,8 @@ export default function WelcomeModal({ user, solicitudes, onClose }) {
 
         {/* Footer */}
         <div className="px-5 pb-5">
-          <button
-            onClick={onClose}
-            className="w-full bg-primary-600 hover:bg-primary-700 active:scale-95 text-white font-bold py-3 rounded-2xl transition-all shadow-lg shadow-primary-200 text-sm"
-          >
-            ¡Vamos! 🚀
+          <button onClick={onClose} className="btn-primary w-full">
+            Continuar
           </button>
         </div>
       </div>

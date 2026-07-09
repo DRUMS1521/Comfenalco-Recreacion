@@ -4,11 +4,11 @@ import { notify } from '../utils/notify'
 import UserModal from './UserModal'
 
 const CARGO_BADGE = {
-  'Jefe de Recreación':      { cls: 'bg-purple-100 text-purple-700 border-purple-200', icon: '👑' },
-  'Secretaria de Recreación': { cls: 'bg-blue-100 text-blue-700 border-blue-200', icon: '📋' },
-  'Recreador':                { cls: 'bg-emerald-100 text-emerald-700 border-emerald-200', icon: '🎯' },
-  'Promotor Comercial':       { cls: 'bg-amber-100 text-amber-700 border-amber-200', icon: '📣' },
-  'Gestor Comercial':         { cls: 'bg-orange-100 text-orange-700 border-orange-200', icon: '💼' },
+  'Jefe de Recreación':      { cls: 'border-purple-600 text-purple-800' },
+  'Secretaria de Recreación': { cls: 'border-blue-600 text-blue-800' },
+  'Recreador':                { cls: 'border-primary-700 text-primary-800' },
+  'Promotor Comercial':       { cls: 'border-amber-600 text-amber-800' },
+  'Gestor Comercial':         { cls: 'border-orange-600 text-orange-800' },
 }
 
 function getInitials(name) {
@@ -116,28 +116,27 @@ export default function UsersView() {
         <div className="flex flex-wrap gap-2 mb-4">
           <button
             onClick={() => setFilterCargo(null)}
-            className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all duration-150 ${
+            className={`text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-md border transition-colors duration-150 ${
               !filterCargo
-                ? 'bg-gray-800 text-white border-gray-800 shadow-sm'
-                : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                ? 'bg-ink-900 text-white border-ink-900'
+                : 'bg-white text-ink-500 border-ink-200 hover:border-ink-400'
             }`}
           >
             Todos ({users.length})
           </button>
           {cargosUnicos.map((cargo) => {
-            const b = CARGO_BADGE[cargo] || { cls: 'bg-gray-100 text-gray-600 border-gray-200', icon: '👤' }
+            const b = CARGO_BADGE[cargo] || { cls: 'border-ink-400 text-ink-600' }
             const activo = filterCargo === cargo
             return (
               <button
                 key={cargo}
                 onClick={() => setFilterCargo(activo ? null : cargo)}
-                className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all duration-150 flex items-center gap-1.5 ${
+                className={`text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-md border transition-colors duration-150 ${
                   activo
-                    ? `${b.cls} shadow-sm ring-1 ring-offset-1 ring-primary-300`
-                    : `bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:bg-gray-50`
+                    ? `bg-white ${b.cls} border-current`
+                    : `bg-white text-ink-500 border-ink-200 hover:border-ink-400`
                 }`}
               >
-                <span>{b.icon}</span>
                 {cargo} ({countByCargo[cargo] || 0})
               </button>
             )
@@ -149,7 +148,7 @@ export default function UsersView() {
       <div className="px-5 flex items-center gap-3 flex-wrap">
         {/* Búsqueda */}
         <div className="relative flex-1 min-w-[180px]">
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300"
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ink-300"
             fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
               d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -159,11 +158,11 @@ export default function UsersView() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por nombre, usuario, email..."
-            className="w-full pl-8 pr-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent bg-gray-50"
+            className="field-input pl-8 py-2 text-xs"
           />
           {search && (
             <button onClick={() => setSearch('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500">
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-300 hover:text-ink-600">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -172,15 +171,12 @@ export default function UsersView() {
         </div>
 
         {/* Contador */}
-        <span className="text-xs text-gray-400 shrink-0">
+        <span className="text-xs text-ink-400 shrink-0">
           {filteredUsers.length} usuario{filteredUsers.length !== 1 ? 's' : ''}
         </span>
 
         {/* Botón crear */}
-        <button
-          onClick={() => setModalUser(null)}
-          className="flex items-center gap-1.5 bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold px-4 py-2 rounded-lg shadow-sm hover:shadow-md transition shrink-0"
-        >
+        <button onClick={() => setModalUser(null)} className="btn-primary btn-sm shrink-0">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
@@ -191,61 +187,68 @@ export default function UsersView() {
       {/* Lista */}
       {filteredUsers.length === 0 ? (
         <div className="text-center py-14 px-4">
-          <div className="text-4xl mb-2">{search ? '🔍' : '👥'}</div>
-          <p className="text-sm font-medium text-gray-600">
+          <div className="w-11 h-11 mx-auto mb-3 rounded-md border border-ink-200 flex items-center justify-center text-ink-300">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                d={search
+                  ? 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'
+                  : 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z'} />
+            </svg>
+          </div>
+          <p className="text-sm font-medium text-ink-600">
             {search ? `Sin resultados para "${search}"` : 'No hay usuarios en este filtro'}
           </p>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-ink-400 mt-1">
             {search ? 'Intenta con otro término' : 'Crea un nuevo usuario para empezar'}
           </p>
         </div>
       ) : (
-        <div className="divide-y divide-gray-50">
+        <div className="divide-y divide-ink-100">
           {filteredUsers.map((u) => {
-            const badge = CARGO_BADGE[u.cargo] || { cls: 'bg-gray-100 text-gray-600 border-gray-200', icon: '👤' }
+            const badge = CARGO_BADGE[u.cargo] || { cls: 'border-ink-400 text-ink-600' }
             const initials = getInitials(u.full_name || u.username)
             const avatarColors = u.is_super_admin
-              ? 'bg-purple-100 text-purple-700 ring-purple-200'
+              ? 'bg-purple-800'
               : u.is_admin
-                ? 'bg-blue-100 text-blue-700 ring-blue-200'
+                ? 'bg-blue-800'
                 : u.is_recreador
-                  ? 'bg-emerald-100 text-emerald-700 ring-emerald-200'
-                  : 'bg-amber-100 text-amber-700 ring-amber-200'
+                  ? 'bg-primary-800'
+                  : 'bg-amber-700'
 
             return (
               <div
                 key={u.id}
-                className={`flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50/80 transition group ${
+                className={`flex items-center gap-3 px-5 py-3.5 hover:bg-ink-50 transition-colors group ${
                   !u.is_active ? 'opacity-50' : ''
                 }`}
               >
                 {/* Avatar */}
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ring-2 shrink-0 font-bold text-sm ${avatarColors}`}>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 font-bold text-sm text-white ${avatarColors}`}>
                   {initials}
                 </div>
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-gray-800 text-sm">{u.full_name || u.username}</span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium border ${badge.cls}`}>
-                      {badge.icon} {u.cargo || 'Sin cargo'}
+                    <span className="font-semibold text-ink-800 text-sm">{u.full_name || u.username}</span>
+                    <span className={`badge-corp ${badge.cls}`}>
+                      {u.cargo || 'Sin cargo'}
                     </span>
                     {!u.is_active && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full font-medium border bg-red-50 text-red-600 border-red-200">
+                      <span className="badge-corp border-red-600 text-red-800">
                         Inactivo
                       </span>
                     )}
                   </div>
                   <div className="flex items-center gap-3 mt-0.5">
-                    <span className="text-xs text-gray-400 flex items-center gap-1">
+                    <span className="text-xs text-ink-400 flex items-center gap-1">
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                           d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
                       {u.username}
                     </span>
-                    <span className="text-xs text-gray-400 flex items-center gap-1">
+                    <span className="text-xs text-ink-400 flex items-center gap-1">
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                           d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -256,12 +259,12 @@ export default function UsersView() {
                 </div>
 
                 {/* Acciones */}
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition shrink-0">
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                   {/* Editar */}
                   <button
                     onClick={() => setModalUser(u)}
                     title="Editar"
-                    className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition"
+                    className="btn-ghost p-2 rounded-md hover:bg-primary-50"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -272,10 +275,10 @@ export default function UsersView() {
                   <button
                     onClick={() => handleToggleActive(u)}
                     title={u.is_active ? 'Desactivar usuario' : 'Activar usuario'}
-                    className={`p-2 rounded-lg transition ${
+                    className={`p-2 rounded-md transition-colors ${
                       u.is_active
-                        ? 'text-gray-400 hover:text-red-500 hover:bg-red-50'
-                        : 'text-gray-400 hover:text-emerald-500 hover:bg-emerald-50'
+                        ? 'text-ink-400 hover:text-red-700 hover:bg-red-50'
+                        : 'text-ink-400 hover:text-primary-800 hover:bg-primary-50'
                     }`}
                   >
                     {u.is_active ? (

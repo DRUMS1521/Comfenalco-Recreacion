@@ -28,12 +28,12 @@ function EventChip({ evento, isAdmin, isSelected }) {
     <div className={`w-full text-left px-1 py-0.5 rounded text-[10px] leading-tight truncate
       ${isSelected
         ? 'bg-white/20 text-white'
-        : 'bg-primary-600 text-white'}`}
+        : 'bg-primary-800 text-white'}`}
     >
       <span className="font-semibold truncate block">{empresa}</span>
       {isAdmin && recreador && (
-        <span className={`truncate block ${isSelected ? 'text-white/80' : 'text-primary-100'}`}>
-          👤 {recreador}
+        <span className={`truncate block ${isSelected ? 'text-white/80' : 'text-primary-200'}`}>
+          {recreador}
         </span>
       )}
     </div>
@@ -86,21 +86,21 @@ export default function CalendarView({ solicitudes, isAdmin = false, onVerDetall
       {/* Navegación */}
       <div className="flex items-center justify-between">
         <button onClick={prevMonth}
-          className="p-2 rounded-lg hover:bg-gray-100 transition text-gray-600">
+          className="p-2 rounded-md hover:bg-ink-100 transition-colors text-ink-600">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
         <div className="text-center">
-          <h3 className="font-bold text-gray-800 text-base sm:text-lg">
+          <h3 className="font-bold text-ink-800 text-base sm:text-lg">
             {MESES[current.month]} {current.year}
           </h3>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-ink-400">
             {programadas.length} tarea{programadas.length !== 1 ? 's' : ''} programada{programadas.length !== 1 ? 's' : ''}
           </p>
         </div>
         <button onClick={nextMonth}
-          className="p-2 rounded-lg hover:bg-gray-100 transition text-gray-600">
+          className="p-2 rounded-md hover:bg-ink-100 transition-colors text-ink-600">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
@@ -111,7 +111,7 @@ export default function CalendarView({ solicitudes, isAdmin = false, onVerDetall
       <div className="grid grid-cols-7 gap-1">
         {/* Cabeceras días */}
         {DIAS.map((d) => (
-          <div key={d} className="text-center text-xs font-semibold text-gray-400 py-1">
+          <div key={d} className="text-center text-xs font-semibold text-ink-400 py-1">
             {d}
           </div>
         ))}
@@ -132,18 +132,18 @@ export default function CalendarView({ solicitudes, isAdmin = false, onVerDetall
               key={day}
               onClick={() => setSelected(isSelected ? null : day)}
               className={`
-                relative min-h-[64px] flex flex-col gap-0.5 p-1 rounded-lg text-left align-top transition
-                ${isToday(day) ? 'ring-2 ring-primary-500' : ''}
+                relative min-h-[64px] flex flex-col gap-0.5 p-1 rounded-md text-left align-top border transition-colors
+                ${isToday(day) ? 'border-accent-600' : 'border-transparent'}
                 ${isSelected
-                  ? 'bg-primary-600'
+                  ? 'bg-primary-800'
                   : hasEvents
                     ? 'bg-primary-50 hover:bg-primary-100'
-                    : 'hover:bg-gray-50'}
+                    : 'hover:bg-ink-50'}
               `}
             >
               {/* Número del día */}
               <span className={`text-xs font-bold leading-none mb-0.5 ${
-                isSelected ? 'text-white' : isToday(day) ? 'text-primary-700' : 'text-gray-600'
+                isSelected ? 'text-white' : isToday(day) ? 'text-primary-800' : 'text-ink-600'
               }`}>
                 {day}
               </span>
@@ -166,18 +166,18 @@ export default function CalendarView({ solicitudes, isAdmin = false, onVerDetall
 
       {/* Panel de detalle del día seleccionado */}
       {selected && (
-        <div className="border border-primary-200 rounded-xl overflow-hidden">
-          <div className="bg-primary-50 px-4 py-3 flex items-center justify-between">
+        <div className="border border-ink-200 rounded-md overflow-hidden">
+          <div className="bg-ink-900 border-b-2 border-accent-500 px-4 py-3 flex items-center justify-between">
             <div>
-              <h4 className="font-bold text-primary-800 text-sm">
+              <h4 className="font-bold text-white text-sm">
                 {selected} de {MESES[current.month]}, {current.year}
               </h4>
-              <p className="text-xs text-primary-500 mt-0.5">
+              <p className="text-xs text-ink-300 mt-0.5">
                 {selectedEvents.length} tarea{selectedEvents.length !== 1 ? 's' : ''} programada{selectedEvents.length !== 1 ? 's' : ''}
               </p>
             </div>
             <button onClick={() => setSelected(null)}
-              className="text-primary-400 hover:text-primary-600 p-1 rounded transition">
+              className="text-ink-300 hover:text-white p-1 rounded transition-colors">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -185,47 +185,47 @@ export default function CalendarView({ solicitudes, isAdmin = false, onVerDetall
           </div>
 
           {selectedEvents.length === 0 ? (
-            <p className="text-gray-400 text-sm text-center py-6">Sin tareas programadas</p>
+            <p className="text-ink-400 text-sm text-center py-6">Sin tareas programadas</p>
           ) : (
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-ink-100">
               {selectedEvents.map((s) => (
                 <div key={s.id}
                   onClick={() => onVerDetalle?.(s)}
-                  className={`px-4 py-3.5 ${onVerDetalle ? 'cursor-pointer hover:bg-gray-50 transition' : ''}`}>
+                  className={`px-4 py-3.5 ${onVerDetalle ? 'cursor-pointer hover:bg-ink-50 transition' : ''}`}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0 space-y-1.5">
                       {/* Empresa y servicio */}
                       <div>
-                        <p className="font-bold text-gray-800 text-sm">{s.empresa}</p>
+                        <p className="font-bold text-ink-800 text-sm">{s.empresa}</p>
                         <p className="text-primary-600 text-xs font-medium">{s.tipo_servicio}</p>
                       </div>
 
                       {/* Detalles del evento */}
                       <div className="flex flex-wrap gap-x-4 gap-y-1">
-                        <span className="text-xs text-gray-500 flex items-center gap-1">
+                        <span className="text-xs text-ink-500 flex items-center gap-1">
                           <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                               d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                           {formatHora(s.hora_inicio)}{s.hora_fin ? ` – ${formatHora(s.hora_fin)}` : ''}
                         </span>
-                        <span className="text-xs text-gray-500 flex items-center gap-1">
+                        <span className="text-xs text-ink-500 flex items-center gap-1">
                           <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                               d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                           </svg>
                           {s.ciudad}
                         </span>
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-ink-500">
                           {s.cantidad_recreadores} recreador{s.cantidad_recreadores !== 1 ? 'es' : ''} · {s.cantidad_personas} personas
                         </span>
                       </div>
 
-                      <p className="text-xs text-gray-400 truncate">{s.direccion}</p>
+                      <p className="text-xs text-ink-400 truncate">{s.direccion}</p>
 
                       {/* Recreador asignado — visible siempre (para admin es clave) */}
                       {s.recreador_id ? (
-                        <div className="flex items-center gap-2 mt-1 bg-blue-50 border border-blue-100 rounded-lg px-2.5 py-1.5">
+                        <div className="flex items-center gap-2 mt-1 bg-blue-50 border border-blue-100 rounded-md px-2.5 py-1.5">
                           <div className="w-6 h-6 rounded-full bg-primary-100 flex items-center justify-center shrink-0">
                             <span className="text-primary-700 text-[10px] font-bold">
                               {s.recreador_full_name?.charAt(0) || s.recreador_username?.charAt(0)?.toUpperCase()}
@@ -249,9 +249,9 @@ export default function CalendarView({ solicitudes, isAdmin = false, onVerDetall
                       )}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-xs text-gray-300">#{s.id}</span>
+                      <span className="text-xs text-ink-300">#{s.id}</span>
                       {onVerDetalle && (
-                        <svg className="w-4 h-4 text-gray-300 group-hover:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 text-ink-300 group-hover:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
                       )}
@@ -265,8 +265,13 @@ export default function CalendarView({ solicitudes, isAdmin = false, onVerDetall
       )}
 
       {programadas.length === 0 && (
-        <div className="text-center py-10 text-gray-400">
-          <div className="text-4xl mb-2">📅</div>
+        <div className="text-center py-10 text-ink-400">
+          <div className="w-11 h-11 mx-auto mb-3 rounded-md border border-ink-200 flex items-center justify-center text-ink-300">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
           <p className="text-sm">No hay tareas programadas aún</p>
         </div>
       )}
