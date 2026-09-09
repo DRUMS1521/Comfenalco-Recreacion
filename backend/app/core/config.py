@@ -18,6 +18,11 @@ class Settings(BaseSettings):
     APP_NAME: str = "Comfenalco Tolima - Servicios de Recreación"
     FRONTEND_URL: str = "http://localhost:5173"
 
+    # Integración Argus (portal self-service Comfenalco) para consultar viáticos.
+    # La cookie de sesión expira periódicamente y debe renovarse en .env.
+    ARGUS_COOKIE: str = ""
+    ARGUS_PDATOS: str = ""
+
     class Config:
         env_file = ".env"
         extra = "ignore"
