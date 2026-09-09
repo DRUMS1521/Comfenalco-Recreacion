@@ -41,14 +41,69 @@ export default function ViaticosView() {
   const totalPages = Math.max(1, Math.ceil(viaticos.length / PER_PAGE))
   const paginated = viaticos.slice((page - 1) * PER_PAGE, page * PER_PAGE)
 
+  const total = viaticos.length
+  const aprobados = viaticos.filter(v => (v.estado || '').trim().toLowerCase() === 'aprobado').length
+  const legalizados = viaticos.filter(v => v.legalizado).length
+  const sinLegalizar = total - legalizados
+
+  const KPIS = [
+    {
+      label: 'Total viáticos', value: total,
+      iconBg: 'bg-primary-50 text-primary-800',
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+        </svg>
+      ),
+    },
+    {
+      label: 'Aprobados', value: aprobados,
+      iconBg: 'bg-emerald-50 text-emerald-700',
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        </svg>
+      ),
+    },
+    {
+      label: 'Legalizados', value: legalizados,
+      iconBg: 'bg-blue-50 text-blue-700',
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+    },
+    {
+      label: 'Sin legalizar', value: sinLegalizar,
+      iconBg: 'bg-orange-50 text-orange-700',
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+      ),
+    },
+  ]
+
   return (
     <>
       <div className="flex items-center justify-between px-5 py-4 border-b border-ink-100">
-        <div>
-          <h2 className="text-ink-800 font-bold text-base">Mis Viáticos</h2>
-          <p className="text-xs text-ink-400 mt-0.5">
-            {loading ? 'Cargando…' : `${viaticos.length} registro${viaticos.length !== 1 ? 's' : ''} en Argus`}
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-md bg-primary-800 text-white flex items-center justify-center shrink-0">
+            <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m-4 6h16a1 1 0 011 1v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a1 1 0 011-1z" />
+            </svg>
+          </div>
+          <div>
+            <h2 className="text-ink-800 font-bold text-base">Mis Viáticos</h2>
+            <p className="text-xs text-ink-400 mt-0.5">
+              {loading ? 'Cargando…' : `${viaticos.length} registro${viaticos.length !== 1 ? 's' : ''} en Argus`}
+            </p>
+          </div>
         </div>
         <button onClick={fetchViaticos} className="btn-secondary btn-sm">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -58,6 +113,22 @@ export default function ViaticosView() {
           Actualizar
         </button>
       </div>
+
+      {!loading && !error && viaticos.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 px-5 py-4 bg-ink-50 border-b border-ink-100">
+          {KPIS.map((k) => (
+            <div key={k.label} className="bg-white rounded-md border border-ink-200 p-3.5 flex items-center gap-3">
+              <div className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 ${k.iconBg}`}>
+                {k.icon}
+              </div>
+              <div className="min-w-0">
+                <p className="text-xl font-bold leading-none text-ink-800">{k.value}</p>
+                <p className="text-xs mt-0.5 truncate text-ink-500">{k.label}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center py-16">
