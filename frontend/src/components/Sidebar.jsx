@@ -61,6 +61,12 @@ const NAV_ICONS = {
         d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
   ),
+  viaticos: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m-4 6h16a1 1 0 011 1v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a1 1 0 011-1z" />
+    </svg>
+  ),
 }
 
 export default function Sidebar({ tab, setTab, isAdmin, isRecreador, isPromotor, isSuperAdmin, badgeCount = 0, onNuevaSolicitud }) {
@@ -82,6 +88,7 @@ export default function Sidebar({ tab, setTab, isAdmin, isRecreador, isPromotor,
         ...(isRecreador ? [{ key: 'horas-extra', label: 'Mis Horas Extras' }] : []),
         ...(isAdmin ? [{ key: 'horas-extra', label: 'Horas Extras y Recargos' }] : []),
         ...(isSuperAdmin ? [{ key: 'usuarios', label: 'Usuarios' }] : []),
+        ...(isSuperAdmin ? [{ key: 'viaticos', label: 'Mis Viáticos' }] : []),
       ]
 
   return (

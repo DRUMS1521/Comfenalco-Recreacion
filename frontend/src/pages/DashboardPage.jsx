@@ -15,6 +15,7 @@ import PromotorDashboard from '../components/PromotorDashboard'
 import UsersView from '../components/UsersView'
 import HorasExtraRecreadorView from '../components/HorasExtraRecreadorView'
 import HorasExtraAdminView from '../components/HorasExtraAdminView'
+import ViaticosView from '../components/ViaticosView'
 import api from '../services/api'
 import { notify } from '../utils/notify'
 import { formatHora } from '../utils/timeFormat'
@@ -844,6 +845,9 @@ export default function DashboardPage() {
 
             {/* Tab: Usuarios (super admin) */}
             {tab === 'usuarios' && isSuperAdmin && <UsersView />}
+
+            {/* Tab: Viáticos (super admin) */}
+            {tab === 'viaticos' && isSuperAdmin && <ViaticosView />}
 
             {/* Tab: Estadísticas */}
             {tab === 'estadisticas' && (
