@@ -465,7 +465,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Stats / Filtros */}
-          {tab !== 'estadisticas' && tab !== 'empresas' && !isPromotor && (
+          {tab !== 'estadisticas' && tab !== 'empresas' && tab !== 'viaticos' && !isPromotor && (
             isAdmin ? (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {ADMIN_STATS.map((s) => {
