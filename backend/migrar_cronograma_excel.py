@@ -136,6 +136,32 @@ def extraer_horario(texto: str):
     return ini, fin
 
 
+def horas_bloques_del_dia(n_bloques: int, horas_reales: float):
+    """
+    Reparte las horas REALES del día (columna HORA LABORAL + HORA FLEXIBLE
+    del Excel, la fuente de verdad) en partes iguales entre los N bloques
+    de texto de ese día, como intervalos contiguos desde las 08:00.
+
+    Esto evita inflar el total semanal: antes se asignaba un horario fijo
+    08:00–17:00 (9h) a CADA bloque, así que un día con 3 bloques sumaba
+    27h aunque el Excel dijera que ese día se trabajaron, por ejemplo,
+    solo 6h.
+    """
+    if n_bloques <= 0:
+        return []
+    share = (horas_reales or 0) / n_bloques
+    horarios = []
+    cursor = 0.0
+    for _ in range(n_bloques):
+        ini_min = round(cursor * 60)
+        fin_min = round((cursor + share) * 60)
+        ini_h, ini_m = divmod(ini_min, 60)
+        fin_h, fin_m = divmod(fin_min, 60)
+        horarios.append((f"{(8 + ini_h) % 24:02d}:{ini_m:02d}", f"{(8 + fin_h) % 24:02d}:{fin_m:02d}"))
+        cursor += share
+    return horarios
+
+
 # --------------------------------------------------------- otros campos ---
 
 def extraer_personas(texto: str):
@@ -254,13 +280,17 @@ def migrar():
                     evento_val = ws.cell(row=row, column=col).value
                     if not evento_val or not str(evento_val).strip():
                         continue
-                    bloques = re.split(r"-{3,}", str(evento_val))
-                    for bloque in bloques:
-                        bloque = bloque.strip()
-                        if not bloque:
-                            continue
+                    bloques = [b.strip() for b in re.split(r"-{3,}", str(evento_val)) if b.strip()]
+                    if not bloques:
+                        continue
 
-                        ini, fin = extraer_horario(bloque)
+                    labor = ws.cell(row=row, column=col + 1).value
+                    flex = ws.cell(row=row, column=col + 2).value
+                    horas_reales = (labor if isinstance(labor, (int, float)) else 0) + \
+                                   (flex if isinstance(flex, (int, float)) else 0)
+                    horarios = horas_bloques_del_dia(len(bloques), horas_reales)
+
+                    for bloque, (ini, fin) in zip(bloques, horarios):
                         personas = extraer_personas(bloque) or 20
                         contacto, telefono = extraer_contacto(bloque)
                         empresa = extraer_empresa(bloque)
