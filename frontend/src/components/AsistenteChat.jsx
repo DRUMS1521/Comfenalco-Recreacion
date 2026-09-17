@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import api from '../services/api'
 import useAuth from '../hooks/useAuth'
-import tommy from '../assets/tommy.png'
+import TommyIcon from './TommyIcon'
 
 /**
  * Tommy · asistente flotante conversacional.
@@ -110,8 +110,7 @@ function BurbujaAsistente({ m, onPreguntar, onNavegar, onCopiar, onFeedback, ani
   const marca = feedback?.[m.hora + m.texto]
   return (
     <div className="msg-entra flex gap-2 items-start group/msg">
-      <img src={tommy} alt="Tommy"
-        className="w-8 h-8 object-contain shrink-0 -mt-0.5 drop-shadow-[0_2px_3px_rgba(0,0,0,0.25)]" />
+      <TommyIcon size={32} glow={false} animado={false} className="shrink-0 -mt-0.5" />
       <div className="min-w-0 flex-1 space-y-2">
         <div className="relative bg-white border border-ink-200 rounded-md rounded-tl-sm px-3 py-2 shadow-sm">
           {m.contexto && (
@@ -355,8 +354,7 @@ export default function AsistenteChat({ onNavegar }) {
             focus:outline-none focus-visible:ring-4 focus-visible:ring-accent-500 rounded-full
             flex items-center justify-center">
           {sinVer && <span className="absolute inset-0 rounded-full bg-accent-500/60 chat-latido" aria-hidden="true" />}
-          <img src={tommy} alt="Tommy"
-            className="w-[86%] h-[86%] object-contain drop-shadow-[0_6px_10px_rgba(0,0,0,0.45)]" />
+          <TommyIcon size={68} className="drop-shadow-[0_8px_14px_rgba(0,0,0,0.4)]" />
           <span className="absolute bottom-1 right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full shadow" />
           {(sinVer || hayNuevos) && (
             <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-accent-500 text-ink-900 text-[10px]
@@ -372,7 +370,7 @@ export default function AsistenteChat({ onNavegar }) {
             flex items-center gap-3 bg-ink-900 text-white rounded-full pl-2 pr-4 py-2 shadow-xl
             border border-white/10 hover:bg-ink-800 transition-colors
             focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500">
-          <img src={tommy} alt="Tommy" className="w-9 h-9 object-contain shrink-0 -my-1" />
+          <TommyIcon size={36} glow={false} animado={false} className="shrink-0 -my-1" />
           <span className="text-left">
             <span className="block text-[12px] font-bold leading-tight">Tommy</span>
             <span className="block text-[10px] text-ink-300 leading-tight">
@@ -390,10 +388,9 @@ export default function AsistenteChat({ onNavegar }) {
 
           <header className="relative bg-gradient-to-r from-ink-900 via-primary-900 to-ink-900
             border-b-2 border-accent-500 px-4 py-3 flex items-center gap-3 shrink-0">
-            <div className="relative shrink-0 -my-2 -ml-1 w-14 h-14">
-              <img src={tommy} alt="Tommy"
-                className="w-full h-full object-contain drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]" />
-              <span className="absolute bottom-1.5 right-1 w-3 h-3 bg-emerald-400 border-2 border-ink-900 rounded-full" />
+            <div className="relative shrink-0 -my-2 -ml-1">
+              <TommyIcon size={58} className="drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)]" />
+              <span className="absolute bottom-2 right-1.5 w-3 h-3 bg-emerald-400 border-2 border-ink-900 rounded-full" />
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-white font-bold text-sm leading-tight">Tommy</p>
@@ -437,6 +434,25 @@ export default function AsistenteChat({ onNavegar }) {
             </div>
           </header>
 
+          {/* Atajos rápidos */}
+          <div className="shrink-0 flex gap-1.5 overflow-x-auto scroll-area px-3 py-2 bg-white/70 border-b border-ink-200">
+            {[
+              { t: '¿Qué actividades hay hoy?', icono: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
+              { t: '¿Quién va mañana?', icono: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z' },
+              { t: '¿Cuántas horas lleva cada recreador esta semana?', icono: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
+            ].map((a) => (
+              <button key={a.t} type="button" onClick={() => preguntar(a.t)}
+                className="shrink-0 flex items-center gap-1.5 text-[11px] text-primary-800 bg-primary-50
+                  border border-primary-200 hover:bg-primary-100 hover:border-primary-400
+                  rounded-full px-2.5 py-1.5 transition-colors whitespace-nowrap">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={a.icono} />
+                </svg>
+                {a.t.replace(/^¿|\?$/g, '')}
+              </button>
+            ))}
+          </div>
+
           <div ref={finRef} onScroll={alDesplazar}
             className="relative flex-1 min-h-0 overflow-y-auto scroll-area p-3 space-y-3">
             {conSeparadores.map((item, i) => {
@@ -471,7 +487,7 @@ export default function AsistenteChat({ onNavegar }) {
 
             {pensando && (
               <div className="msg-entra flex gap-2 items-center">
-                <img src={tommy} alt="Tommy" className="w-8 h-8 object-contain shrink-0" />
+                <TommyIcon size={32} glow={false} animado={false} className="shrink-0" />
                 <div className="bg-white border border-ink-200 rounded-md rounded-tl-sm px-3 py-2.5 shadow-sm flex items-center gap-1">
                   {[0, 1, 2].map((d) => (
                     <span key={d} className="w-1.5 h-1.5 rounded-full bg-ink-400 chat-puntito"
