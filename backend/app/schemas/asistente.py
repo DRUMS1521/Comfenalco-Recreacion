@@ -29,6 +29,11 @@ class AccionAsistente(BaseModel):
     etiqueta: str
 
 
+class FiltroAsistente(BaseModel):
+    campo: str
+    valor: str
+
+
 class RespuestaAsistente(BaseModel):
     respuesta: str
     tipo: str = "texto"                 # texto | actividades | personas | conteos | cotizaciones
@@ -38,4 +43,5 @@ class RespuestaAsistente(BaseModel):
     sugerencias: List[str] = []
     contexto: Optional[str] = None      # p. ej. "hoy, jueves 17 de septiembre de 2026"
     acciones: List[AccionAsistente] = []
+    filtros: List[FiltroAsistente] = []
     contexto_conversacion: Dict[str, Any] = {}

@@ -639,14 +639,17 @@ def _cotizaciones(db: Session, user: User, pregunta: str,
 
 
 def _quien_va(db: Session, user: User, pregunta: str,
-              concepto: Optional[str] = None) -> Dict[str, Any]:
-    """Quién tiene asignada cada actividad de una fecha (opcionalmente de un tema)."""
+              concepto: Optional[str] = None, ciudad: Optional[str] = None,
+              estado: Optional[str] = None) -> Dict[str, Any]:
+    """Quién tiene asignada cada actividad de una fecha (con filtros opcionales)."""
     desde, hasta, etiqueta = _detectar_fecha(pregunta)
     q = db.query(Solicitud).filter(
         Solicitud.fecha_evento >= desde.isoformat(),
         Solicitud.fecha_evento <= hasta.isoformat(),
-        Solicitud.estado == "programado",
+        Solicitud.estado == (estado or "programado"),
     )
+    if ciudad:
+        q = q.filter(Solicitud.ciudad.ilike(f"%{ciudad}%"))
     # alcance por rol
     if user.is_recreador:
         q = q.filter(or_(Solicitud.recreador_id == user.id,
@@ -722,6 +725,55 @@ def _quien_va(db: Session, user: User, pregunta: str,
         "extra": f"y {len(solicitudes) - 10} más" if len(solicitudes) > 10 else None,
         "sugerencias": ["¿Quién va mañana?", "¿Qué actividades hay el domingo?"],
     }
+
+
+def _consulta_actividades(db: Session, user: User, pregunta: str, f=None) -> Dict[str, Any]:
+    """Responde usando el motor de filtros (combinaciones y agrupaciones)."""
+    from app.services import asistente_consulta as motor
+    f = f or motor.extraer(db, user, pregunta)
+    r = motor.ejecutar(db, user, f)
+    fichas = f.fichas()
+    etiqueta = f.etiqueta_fecha or "el periodo consultado"
+    rango_largo = f.rango or (f.desde != f.hasta)
+
+    if r["tipo"] == "grupos":
+        filas = r["filas"]
+        if not filas:
+            return {"respuesta": f"No hay actividades que cumplan esos filtros ({motor.describir(f)}).",
+                    "tipo": "texto", "filtros": fichas,
+                    "sugerencias": ["¿Qué actividades hay hoy?", "¿Cuántas hay por empresa este mes?"]}
+        campo = (f.agrupar_por or "").replace("_", " ")
+        cabeza = filas[0]
+        respuesta = (f"**{r['total']} actividades** en {len(filas)} grupos de {campo} "
+                     f"({r['horas']} h) · {etiqueta}. El mayor: **{cabeza[0]}** con "
+                     f"{cabeza[1]['n']} actividades y {round(cabeza[1]['horas'], 1)} h.")
+        items = [{
+            "titulo": str(clave),
+            "subtitulo": (f"{datos['n']} actividades · {round(datos['horas'], 1)} h"
+                          + (f" · {len(datos['personas'])} personas" if datos["personas"] else "")),
+            "meta": "El mayor" if i == 0 else "",
+            "estado": None,
+        } for i, (clave, datos) in enumerate(filas)]
+        return {"respuesta": respuesta, "tipo": "grupos", "items": items, "filtros": fichas,
+                "conteos": [{"etiqueta": "Actividades", "valor": r["total"]},
+                            {"etiqueta": "Horas", "valor": r["horas"]},
+                            {"etiqueta": campo.capitalize() or "Grupos", "valor": len(r["grupos"])}],
+                "extra": f"y {len(r['grupos']) - len(filas)} grupos más" if len(r["grupos"]) > len(filas) else None,
+                "sugerencias": ["¿Cuántas hay por ciudad?", "¿Y agrupadas por recreador?"]}
+
+    solicitudes = r["solicitudes"]
+    if not solicitudes:
+        return {"respuesta": (f"No hay actividades que cumplan esos filtros "
+                              f"({motor.describir(f)}) para tu alcance."),
+                "tipo": "texto", "filtros": fichas,
+                "sugerencias": ["¿Qué actividades hay hoy?", "¿Quién va el domingo?"]}
+    plural = "actividad" if r["total"] == 1 else "actividades"
+    respuesta = (f"**{r['total']} {plural}** · {r['horas']} h · {r['personas']} personas · "
+                 f"{etiqueta}.")
+    return {"respuesta": respuesta, "tipo": "actividades", "filtros": fichas,
+            "items": [_tarjeta_actividad(s, con_fecha=rango_largo) for s in solicitudes[:f.limite]],
+            "extra": f"y {r['total'] - f.limite} más" if r["total"] > f.limite else None,
+            "sugerencias": ["¿Y agrupadas por empresa?", "¿Quién va ese día?"]}
 
 
 def _menos_carga(db: Session, user: User, pregunta: str) -> Dict[str, Any]:
@@ -941,10 +993,25 @@ def responder(db: Session, user: User, pregunta: str,
     else:
         tema = None
 
+    # ── filtros de la pregunta (motor de consultas) ──
+    from app.services import asistente_consulta as motor
+    f = motor.extraer(db, user, pregunta)
+    # un concepto que en realidad es una empresa o ciudad no debe duplicarse
+    concepto = f.concepto or f.empresa or f.tipo_servicio
+    filtros_combinables = any([f.ciudad, f.tipo_servicio, f.categoria, f.estado, f.concepto,
+                               f.empresa, f.rango, f.excluir_recreador_id, f.agrupar_por])
+
     # ── intenciones específicas (solo con palabras propias, no heredan) ──
     if menciona_quien_va:
-        r = _quien_va(db, user, pregunta, _detectar_concepto(db, pregunta))
+        r = _quien_va(db, user, pregunta, concepto, f.ciudad, f.estado)
         return _cerrar(r, contexto, tema="quien_va", fecha=desde, etiqueta_fecha=etiqueta)
+
+    # ── combinaciones y agrupaciones: las resuelve el motor de filtros ──
+    if f.agrupar_por or (filtros_combinables and not user.is_cotizador):
+        r = _consulta_actividades(db, user, pregunta, f)
+        return _cerrar(r, contexto, tema="consulta", fecha=desde, etiqueta_fecha=etiqueta,
+                       empresa=f.empresa, recreador=(db.query(User).get(f.recreador_id)
+                                                     if f.recreador_id else None))
     if any(p in t for p in ("menos carga", "quien tiene menos", "mas libre", "menos actividades",
                             "mas descansado")):
         r = _menos_carga(db, user, pregunta)
@@ -1057,7 +1124,13 @@ def responder(db: Session, user: User, pregunta: str,
             "sugerencias": ["¿Cuántas solicitudes tengo?", "¿Cuánto llevamos cotizado?"],
         }, contexto)
 
-    # ── sin intención reconocida ──
+    # ── sin intención reconocida: se intenta una búsqueda antes de rendirse ──
+    if not user.is_cotizador:
+        intento = _consulta_actividades(db, user, pregunta, f)
+        if intento.get("items"):
+            intento["respuesta"] = ("No estoy seguro de haber entendido del todo, pero esto es lo "
+                                    "que coincide con tu pregunta: " + intento["respuesta"])
+            return _cerrar(intento, contexto, tema="busqueda", fecha=desde, etiqueta_fecha=etiqueta)
     base = _ayuda(user)
     base["respuesta"] = ("No estoy seguro de haber entendido. Puedo consultar la agenda de los "
                          "recreadores, las solicitudes y las cotizaciones. Prueba con:")
