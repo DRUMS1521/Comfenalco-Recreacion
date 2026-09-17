@@ -121,7 +121,8 @@ function BurbujaAsistente({ m, onPreguntar, onNavegar, onCopiar, onFeedback, ani
             {!completo && <span className="inline-block w-[2px] h-[13px] bg-primary-700 align-middle ml-0.5 animate-pulse" />}
           </p>
           {completo && (
-            <div className="absolute -right-2 -top-2 flex gap-0.5 opacity-0 group-hover/msg:opacity-100 focus-within:opacity-100 transition-opacity">
+            <div className="acciones-msg absolute right-1 -top-3 sm:-right-2 sm:-top-2 flex gap-0.5
+              opacity-0 group-hover/msg:opacity-100 focus-within:opacity-100 transition-opacity">
               <button onClick={() => onCopiar(m.texto)} title="Copiar respuesta"
                 className="w-6 h-6 rounded-md bg-white border border-ink-200 text-ink-400 hover:text-primary-800
                   hover:border-primary-300 flex items-center justify-center shadow-sm transition-colors">
@@ -339,9 +340,6 @@ export default function AsistenteChat({ onNavegar }) {
   }, [mensajes])
 
   const ultimoIndice = mensajes.length - 1
-  const altura = modo === 'pantalla'
-    ? 'sm:inset-3'
-    : 'sm:right-6 sm:bottom-6 sm:w-[400px] sm:h-[620px]'
 
   return createPortal(
     <>
@@ -382,12 +380,10 @@ export default function AsistenteChat({ onNavegar }) {
 
       {/* ── Panel ── */}
       {abierto && (
-        <div className={`fixed z-[55] inset-x-2 bottom-2 top-16 sm:inset-auto ${altura}
-          flex flex-col overflow-hidden bg-ink-50 rounded-lg border border-ink-200
-          shadow-[0_20px_50px_-12px_rgba(0,0,0,0.45)] chat-entra`}>
+        <div className={`chat-panel chat-entra ${modo === 'pantalla' ? 'chat-panel--pantalla' : ''}`}>
 
           <header className="relative bg-gradient-to-r from-ink-900 via-primary-900 to-ink-900
-            border-b-2 border-accent-500 px-4 py-3 flex items-center gap-3 shrink-0">
+            border-b-2 border-accent-500 px-3 sm:px-4 py-2.5 sm:py-3 flex items-center gap-2.5 sm:gap-3 shrink-0">
             <div className="relative shrink-0 -my-2 -ml-1">
               <TommyIcon size={58} className="drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)]" />
               <span className="absolute bottom-2 right-1.5 w-3 h-3 bg-emerald-400 border-2 border-ink-900 rounded-full" />
@@ -408,7 +404,8 @@ export default function AsistenteChat({ onNavegar }) {
               </button>
               <button onClick={() => setModo(modo === 'pantalla' ? 'abierto' : 'pantalla')}
                 title={modo === 'pantalla' ? 'Tamaño normal' : 'Pantalla completa'}
-                className="hidden sm:flex text-ink-300 hover:text-white p-2 rounded-md hover:bg-white/10 transition-colors">
+                className="chat-solo-flotante text-ink-300 hover:text-white p-2 rounded-md hover:bg-white/10
+                  items-center justify-center transition-colors">
                 {modo === 'pantalla' ? (
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9V5H5m10 4V5h4m-4 10h4v4m-10-4H5v4" />
@@ -435,7 +432,8 @@ export default function AsistenteChat({ onNavegar }) {
           </header>
 
           {/* Atajos rápidos */}
-          <div className="shrink-0 flex gap-1.5 overflow-x-auto scroll-area px-3 py-2 bg-white/70 border-b border-ink-200">
+          <div className="chat-atajos shrink-0 flex gap-1.5 overflow-x-auto scroll-area px-3 py-2 bg-white/70 border-b border-ink-200
+            [-webkit-overflow-scrolling:touch]">
             {[
               { t: '¿Qué actividades hay hoy?', icono: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
               { t: '¿Quién va mañana?', icono: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z' },

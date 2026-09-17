@@ -16,7 +16,7 @@
 
   /* En pantallas táctiles ningún control queda por debajo del mínimo cómodo
      (había paginación de 28 px, cierres de 24 px y campos de 34 px). */
-  @media (max-width: 639px) {
+  @media (max-width: 639px), (pointer: coarse) {
     button,
     [role='button'],
     a.btn,
@@ -243,6 +243,74 @@
   animation: latido 2.2s ease-out infinite;
 }
 .chat-puntito { animation: puntito 1.1s ease-in-out infinite; }
+
+/* ── Panel de Tommy ────────────────────────────────────────────────────────────
+   En móvil y en pantallas bajas (un teléfono en horizontal mide 844x390) el panel
+   ocupa todo el alto con `100dvh`, que sigue al teclado y a la barra del navegador.
+   Solo flota como tarjeta cuando hay ancho Y alto suficientes. */
+.chat-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #f7f7f6;
+  height: 100dvh;
+  max-height: 100dvh;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (min-width: 640px) and (min-height: 620px) {
+  .chat-panel {
+    inset: auto 1.5rem 1.5rem auto;
+    width: 400px;
+    height: 620px;
+    max-height: calc(100dvh - 3rem);
+    border-radius: 0.55rem;
+    border: 1px solid #e6e6e3;
+    box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.45);
+    padding: 0;
+  }
+  .chat-panel--pantalla {
+    inset: 0.75rem;
+    width: auto;
+    height: auto;
+    max-height: none;
+  }
+}
+
+/* El botón de pantalla completa solo sirve si el panel flota */
+.chat-solo-flotante { display: none; }
+@media (min-width: 640px) and (min-height: 620px) {
+  .chat-solo-flotante { display: flex; }
+}
+
+/* En pantallas muy bajas, los atajos estorban más que ayudan */
+@media (max-height: 560px) {
+  .chat-atajos { display: none; }
+}
+
+/* Con el dedo no existe el "hover": las acciones del mensaje pasan a ser una fila
+   táctil dentro de la burbuja (40x40), en vez de flotar sobre el texto. */
+@media (pointer: coarse) {
+  .acciones-msg {
+    position: static;
+    opacity: 1 !important;
+    justify-content: flex-end;
+    margin-top: 0.25rem;
+  }
+  .acciones-msg button {
+    min-width: 40px;
+    min-height: 40px;
+  }
+}
+
+/* iOS hace zoom al enfocar un campo de menos de 16 px */
+@media (pointer: coarse) {
+  .chat-panel input,
+  .chat-panel textarea { font-size: 16px; }
+}
 
 /* ── Animaciones del icono de Tommy ────────────────────────────────────────── */
 @keyframes tmPunto {
