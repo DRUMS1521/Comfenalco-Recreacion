@@ -43,17 +43,6 @@ const MESES_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agos
 
 function toYMD(d) { return d.toISOString().split('T')[0] }
 
-function getSemanaActual() {
-  const hoy = new Date()
-  const day = hoy.getDay()
-  const diffLunes = day === 0 ? -6 : 1 - day
-  const lunes = new Date(hoy)
-  lunes.setDate(hoy.getDate() + diffLunes)
-  const domingo = new Date(lunes)
-  domingo.setDate(lunes.getDate() + 6)
-  return { desde: toYMD(lunes), hasta: toYMD(domingo) }
-}
-
 function puedeFinalizarSol(sol) {
   if (sol.estado !== 'programado') return false
   const ahora = new Date()
@@ -228,7 +217,15 @@ const PAGE_SIZE = 10
 export default function DashboardPage() {
   const { user } = useAuth()
   const [showSolicitudModal, setShowSolicitudModal] = useState(false)
+  // Dataset completo: solo lo usan los calendarios y las vistas por día (se carga
+  // bajo demanda). El listado del admin usa paginación en servidor.
   const [solicitudes, setSolicitudes] = useState([])
+  const [cargandoCompletas, setCargandoCompletas] = useState(false)
+  // Página actual del listado (admin) resuelta en el servidor
+  const [pagina, setPagina] = useState({ items: [], total: 0, page: 1, page_size: PAGE_SIZE, pages: 1 })
+  // Contadores por estado resueltos con GROUP BY en el servidor
+  const [resumen, setResumen] = useState({ total: 0, por_estado: {}, finalizadas_semana: 0 })
+  const [eventosHoy, setEventosHoy] = useState([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('lista')
   const [calView, setCalView] = useState('semana')
@@ -242,28 +239,107 @@ export default function DashboardPage() {
 
   // Admin list controls
   const [search, setSearch] = useState('')
+  const [searchDebounced, setSearchDebounced] = useState('')
   const [sortDir, setSortDir] = useState('asc')   // 'asc' | 'desc' por fecha_evento
   const [page, setPage] = useState(1)
   const [dismissedHoy, setDismissedHoy] = useState(false)
 
-  const fetchSolicitudes = useCallback(async () => {
+  const isRecreador = user?.is_recreador
+  const isAdmin = user?.is_admin
+  const isPromotor = user?.is_promotor
+  const isSuperAdmin = user?.is_super_admin
+
+  // Fecha de hoy estable durante la sesión (evita recrear los callbacks en cada render)
+  const hoy = useMemo(() => toYMD(new Date()), [])
+
+  /** Contadores por estado, calculados en el servidor. */
+  const fetchResumen = useCallback(async () => {
     try {
-      const { data } = await api.get('/solicitudes/')
-      setSolicitudes(data)
-      setFiltroEstado('pendiente')
-      setPage(1)
-      if (!sessionStorage.getItem('welcomeShown')) {
-        sessionStorage.setItem('welcomeShown', '1')
-        setShowWelcome(true)
-      }
+      const { data } = await api.get('/solicitudes/resumen')
+      setResumen(data)
+    } catch (e) {
+      console.error(e)
+    }
+  }, [])
+
+  /** Página del listado del admin: filtra, cuenta y ordena en el servidor. */
+  const fetchPagina = useCallback(async () => {
+    setLoading(true)
+    try {
+      const params = { page, page_size: PAGE_SIZE, sort_dir: sortDir }
+      if (filtroEstado) params.estado = filtroEstado
+      if (searchDebounced) params.q = searchDebounced
+      const { data } = await api.get('/solicitudes/paginadas', { params })
+      setPagina(data)
     } catch (e) {
       console.error(e)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [page, filtroEstado, searchDebounced, sortDir])
 
-  useEffect(() => { fetchSolicitudes() }, [fetchSolicitudes])
+  /** Lista completa bajo demanda (calendarios, vistas por día, recreador/promotor). */
+  const fetchListaCompleta = useCallback(async (force = false) => {
+    if (!force && solicitudes.length) return
+    setCargandoCompletas(true)
+    try {
+      const { data } = await api.get('/solicitudes/')
+      setSolicitudes(data)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setCargandoCompletas(false)
+    }
+  }, [solicitudes.length])
+
+  /** Actividades programadas para hoy (banner del admin). */
+  const fetchEventosHoy = useCallback(async () => {
+    if (!isAdmin) return
+    try {
+      const { data } = await api.get('/solicitudes/', {
+        params: { fecha_desde: hoy, fecha_hasta: hoy, estado: 'programado' },
+      })
+      setEventosHoy(data)
+    } catch (e) {
+      console.error(e)
+    }
+  }, [isAdmin, hoy])
+
+  /** Recarga lo que el usuario está viendo ahora mismo. */
+  const refrescar = useCallback(async () => {
+    if (isAdmin) {
+      await Promise.all([fetchPagina(), fetchResumen()])
+      fetchEventosHoy()
+      if (solicitudes.length) fetchListaCompleta(true)
+    } else {
+      await fetchListaCompleta(true)
+    }
+  }, [isAdmin, fetchPagina, fetchResumen, fetchEventosHoy, fetchListaCompleta, solicitudes.length])
+
+  useEffect(() => { fetchResumen() }, [fetchResumen])
+
+  // El admin pagina en el servidor; el resto de roles usan su lista completa
+  // (los recreadores solo ven sus asignaciones, un conjunto pequeño).
+  useEffect(() => {
+    if (isAdmin) {
+      fetchPagina()
+    } else {
+      // El resto de roles usan su lista completa: al terminar se apaga el spinner
+      fetchListaCompleta().then(() => setLoading(false))
+    }
+  }, [isAdmin, fetchPagina, fetchListaCompleta])
+
+  useEffect(() => { if (tab === 'lista') fetchEventosHoy() }, [tab, fetchEventosHoy])
+
+  // El calendario necesita el dataset completo: se carga solo al abrir esa pestaña
+  useEffect(() => { if (tab === 'calendario') fetchListaCompleta() }, [tab, fetchListaCompleta])
+
+  useEffect(() => {
+    if (!sessionStorage.getItem('welcomeShown')) {
+      sessionStorage.setItem('welcomeShown', '1')
+      setShowWelcome(true)
+    }
+  }, [])
 
   useEffect(() => {
     if (user?.is_admin) {
@@ -271,16 +347,23 @@ export default function DashboardPage() {
     }
   }, [user?.is_admin])
 
-  // Reset page cuando cambia filtro o búsqueda
-  useEffect(() => { setPage(1) }, [filtroEstado, search])
+  // Reset page cuando cambia filtro, búsqueda u orden
+  useEffect(() => { setPage(1) }, [filtroEstado, searchDebounced, sortDir])
+
+  // La búsqueda se envía al servidor con un pequeño retardo (evita una petición por tecla)
+  useEffect(() => {
+    const t = setTimeout(() => setSearchDebounced(search), 300)
+    return () => clearTimeout(t)
+  }, [search])
 
   const handleEstadoChange = async (id, estado, recreadorIds = null, tipoHoraExtra = null) => {
     try {
       const body = { estado }
       if (recreadorIds?.length) body.recreador_ids = recreadorIds
       if (tipoHoraExtra) body.tipo_hora_extra = tipoHoraExtra
-      const { data } = await api.patch(`/solicitudes/${id}/estado`, body)
-      setSolicitudes((prev) => prev.map((s) => (s.id === id ? data : s)))
+      await api.patch(`/solicitudes/${id}/estado`, body)
+      // El cambio puede sacar la fila del filtro actual: se recarga desde el servidor
+      await refrescar()
       notify.success(`Estado actualizado: ${ESTADO_CONFIG[estado]?.label || estado}`)
     } catch (err) {
       notify.error(err.response?.data?.detail || 'Error al actualizar estado')
@@ -289,9 +372,9 @@ export default function DashboardPage() {
 
   const handleFinalizar = async (id, observacion) => {
     try {
-      const { data } = await api.patch(`/solicitudes/${id}/finalizar`, { observacion })
-      setSolicitudes((prev) => prev.map((s) => (s.id === id ? data : s)))
+      await api.patch(`/solicitudes/${id}/finalizar`, { observacion })
       setFinalizarTarget(null)
+      await refrescar()
       notify.success('Actividad marcada como finalizada')
     } catch (err) {
       notify.error(err.response?.data?.detail || 'Error al finalizar')
@@ -305,31 +388,14 @@ export default function DashboardPage() {
     return 'Buenas noches'
   }
 
-  const isRecreador = user?.is_recreador
-  const isAdmin = user?.is_admin
-  const isPromotor = user?.is_promotor
-  const isSuperAdmin = user?.is_super_admin
+  // Contadores para el admin: vienen del servidor (GROUP BY), no de la lista completa.
+  const conteo = (estado) => resumen.por_estado?.[estado] || 0
 
-  const hoy = toYMD(new Date())
-
-  // Eventos programados para hoy
-  const eventosHoy = useMemo(
-    () => solicitudes.filter((s) => s.fecha_evento === hoy && s.estado === 'programado'),
-    [solicitudes, hoy]
-  )
-
-  // Solicitudes por corregir urgentes
-  const porCorregir = useMemo(
-    () => solicitudes.filter((s) => s.estado === 'por corregir'),
-    [solicitudes]
-  )
-
-  // Contadores para el admin
   const ADMIN_STATS = [
     {
       estado: 'pendiente',
       label: 'Pendientes',
-      value: solicitudes.filter((s) => s.estado === 'pendiente').length,
+      value: conteo('pendiente'),
       inactiveCls: 'bg-white border-ink-200 text-ink-600 hover:border-yellow-500',
       activeCls:   'bg-yellow-50 border-yellow-600 text-yellow-800',
       iconBgInactive: 'bg-yellow-50 text-yellow-700',
@@ -343,7 +409,7 @@ export default function DashboardPage() {
     {
       estado: 'programado',
       label: 'Programadas',
-      value: solicitudes.filter((s) => s.estado === 'programado').length,
+      value: conteo('programado'),
       inactiveCls: 'bg-white border-ink-200 text-ink-600 hover:border-blue-600',
       activeCls:   'bg-blue-50 border-blue-700 text-blue-800',
       iconBgInactive: 'bg-blue-50 text-blue-700',
@@ -357,7 +423,7 @@ export default function DashboardPage() {
     {
       estado: 'por corregir',
       label: 'Por Corregir',
-      value: solicitudes.filter((s) => s.estado === 'por corregir').length,
+      value: conteo('por corregir'),
       inactiveCls: 'bg-white border-ink-200 text-ink-600 hover:border-orange-500',
       activeCls:   'bg-orange-50 border-orange-600 text-orange-800',
       iconBgInactive: 'bg-orange-50 text-orange-700',
@@ -371,13 +437,8 @@ export default function DashboardPage() {
     {
       estado: 'finalizado',
       label: 'Finalizadas esta semana',
-      value: (() => {
-        const { desde, hasta } = getSemanaActual()
-        return solicitudes.filter(
-          (s) => s.estado === 'finalizado' && s.fecha_evento >= desde && s.fecha_evento <= hasta
-        ).length
-      })(),
-      total: solicitudes.filter((s) => s.estado === 'finalizado').length,
+      value: resumen.finalizadas_semana || 0,
+      total: conteo('finalizado'),
       inactiveCls: 'bg-white border-ink-200 text-ink-600 hover:border-primary-700',
       activeCls:   'bg-primary-50 border-primary-800 text-primary-900',
       iconBgInactive: 'bg-primary-50 text-primary-800',
@@ -395,31 +456,12 @@ export default function DashboardPage() {
     { label: 'Próximas',  value: solicitudes.filter((s) => s.fecha_evento >= hoy).length, dot: 'bg-green-400' },
   ]
 
-  // Lista filtrada + búsqueda + orden para admin
-  const solicitudesFiltradas = useMemo(() => {
-    let list = filtroEstado
-      ? solicitudes.filter((s) => s.estado === filtroEstado)
-      : solicitudes
-
-    if (search.trim()) {
-      const q = search.trim().toLowerCase()
-      list = list.filter((s) =>
-        s.empresa?.toLowerCase().includes(q) ||
-        s.ciudad?.toLowerCase().includes(q) ||
-        s.tipo_servicio?.toLowerCase().includes(q)
-      )
-    }
-
-    list = [...list].sort((a, b) => {
-      const cmp = a.fecha_evento.localeCompare(b.fecha_evento) || a.hora_inicio.localeCompare(b.hora_inicio)
-      return sortDir === 'asc' ? cmp : -cmp
-    })
-
-    return list
-  }, [solicitudes, filtroEstado, search, sortDir])
-
-  const totalPages = Math.max(1, Math.ceil(solicitudesFiltradas.length / PAGE_SIZE))
-  const paginadas = solicitudesFiltradas.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  // El admin ya no filtra, ordena ni pagina en el navegador: la página y el total
+  // vienen resueltos por el servidor.
+  const solicitudesFiltradas = pagina.items
+  const totalPages = pagina.pages
+  const paginadas = pagina.items
+  const totalResultados = pagina.total
 
   const PAGE_TITLES = {
     lista:        isRecreador ? 'Mis Asignaciones' : isPromotor ? 'Mis Solicitudes' : 'Solicitudes',
@@ -428,6 +470,7 @@ export default function DashboardPage() {
     empresas:     'Empresas',
     usuarios:     'Gestión de Usuarios',
     'horas-extra': isRecreador ? 'Mis Horas Extras' : 'Horas Extras y Recargos',
+    viaticos:     'Mis Viáticos',
   }
 
   return (
@@ -439,7 +482,7 @@ export default function DashboardPage() {
         isRecreador={isRecreador}
         isPromotor={isPromotor}
         isSuperAdmin={isSuperAdmin}
-        badgeCount={solicitudes.filter((s) => s.estado === 'programado').length}
+        badgeCount={isAdmin ? conteo('programado') : solicitudes.filter((s) => s.estado === 'programado').length}
         onNuevaSolicitud={() => setShowSolicitudModal(true)}
       />
 
@@ -453,7 +496,7 @@ export default function DashboardPage() {
               <h1 className="text-2xl font-bold text-ink-900 mt-0.5">{PAGE_TITLES[tab]}</h1>
             </div>
             <button
-              onClick={fetchSolicitudes}
+              onClick={refrescar}
               className="btn-ghost text-xs uppercase tracking-wider font-semibold px-3 py-1.5"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -615,7 +658,7 @@ export default function DashboardPage() {
 
                       {/* Contador */}
                       <span className="text-xs text-ink-400 shrink-0">
-                        {solicitudesFiltradas.length} resultado{solicitudesFiltradas.length !== 1 ? 's' : ''}
+                        {totalResultados} resultado{totalResultados !== 1 ? 's' : ''}
                       </span>
 
                       {/* Ver todas */}
@@ -893,7 +936,11 @@ export default function DashboardPage() {
                   </div>
                 )}
                 <div className="p-4 sm:p-6">
-                  {isAdmin
+                  {isAdmin && cargandoCompletas ? (
+                    <div className="flex items-center justify-center py-16">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
+                    </div>
+                  ) : isAdmin
                     ? calView === 'semana'
                       ? <CalendarAdminView solicitudes={solicitudes} onVerDetalle={setDetailTarget} />
                       : <CalendarView solicitudes={solicitudes} isAdmin={true} onVerDetalle={setDetailTarget} />
@@ -910,7 +957,7 @@ export default function DashboardPage() {
 
       {/* Modales */}
       {showSolicitudModal && (
-        <SolicitudModal onClose={() => setShowSolicitudModal(false)} onSuccess={fetchSolicitudes} />
+        <SolicitudModal onClose={() => setShowSolicitudModal(false)} onSuccess={refrescar} />
       )}
 
       {estadoTarget && (
@@ -942,6 +989,7 @@ export default function DashboardPage() {
         <WelcomeModal
           user={user}
           solicitudes={solicitudes}
+          resumen={resumen}
           onClose={() => setShowWelcome(false)}
         />
       )}

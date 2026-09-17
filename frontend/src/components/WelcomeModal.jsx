@@ -58,7 +58,7 @@ const IconWarning = (
   </svg>
 )
 
-export default function WelcomeModal({ user, solicitudes, onClose }) {
+export default function WelcomeModal({ user, solicitudes, resumen, onClose }) {
   const isAdmin    = user?.is_admin
   const isRecreador = user?.is_recreador
   const isPromotor  = user?.is_promotor
@@ -69,8 +69,11 @@ export default function WelcomeModal({ user, solicitudes, onClose }) {
     const ahoraHHMM = `${String(ahora.getHours()).padStart(2,'0')}:${String(ahora.getMinutes()).padStart(2,'0')}`
 
     if (isAdmin) {
-      const pendientes  = solicitudes.filter(s => s.estado === 'pendiente').length
-      const porCorregir = solicitudes.filter(s => s.estado === 'por corregir').length
+      // Los contadores del admin vienen del servidor (GROUP BY); la lista
+      // completa ya no se descarga en el navegador.
+      const porEstado = resumen?.por_estado || {}
+      const pendientes  = porEstado.pendiente ?? solicitudes.filter(s => s.estado === 'pendiente').length
+      const porCorregir = porEstado['por corregir'] ?? solicitudes.filter(s => s.estado === 'por corregir').length
       return { pendientes, porCorregir }
     }
 
@@ -94,7 +97,7 @@ export default function WelcomeModal({ user, solicitudes, onClose }) {
     }
 
     return {}
-  }, [solicitudes, isAdmin, isRecreador, isPromotor])
+  }, [solicitudes, resumen, isAdmin, isRecreador, isPromotor])
 
   /* ── Contenido según rol ── */
   const renderContent = () => {

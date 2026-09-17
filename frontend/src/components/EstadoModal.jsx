@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import api from '../services/api'
-import { calcHours, getMondayOfStr as getMondayOf, getWeekDaysFromMonday as getWeekDays, LIMITE_HORAS } from '../utils/hours'
+import { calcHours, LIMITE_HORAS } from '../utils/hours'
 
 const ESTADO_CONFIG = {
   pendiente:       { label: 'Pendiente',    color: 'bg-yellow-400', text: 'text-yellow-700', bg: 'bg-yellow-50 border-yellow-200' },
@@ -18,32 +18,7 @@ const TIPOS_HORA_EXTRA = [
 ]
 
 
-function tieneConflictoHorario(recId, solicitudes, solicitud) {
-  if (!recId || !solicitud.fecha_evento || !solicitud.hora_inicio || !solicitud.hora_fin) return null
-  return solicitudes.find(s =>
-    s.id !== solicitud.id &&
-    s.estado === 'programado' &&
-    s.fecha_evento === solicitud.fecha_evento &&
-    (s.recreadores_asignados?.some(r => r.id === recId) || s.recreador_id === recId) &&
-    s.hora_inicio < solicitud.hora_fin &&
-    solicitud.hora_inicio < s.hora_fin
-  ) || null
-}
-
-function horasRecreadorEnSemana(recId, solicitudes, fechaEvento, excluirId) {
-  if (!recId || !fechaEvento) return 0
-  const weekDays = getWeekDays(getMondayOf(fechaEvento))
-  return solicitudes
-    .filter((s) =>
-      s.estado === 'programado' &&
-      s.id !== excluirId &&
-      weekDays.includes(s.fecha_evento) &&
-      (s.recreadores_asignados?.some((r) => r.id === recId) || s.recreador_id === recId)
-    )
-    .reduce((sum, s) => sum + calcHours(s.hora_inicio, s.hora_fin), 0)
-}
-
-export default function EstadoModal({ solicitud, solicitudes = [], onClose, onConfirm }) {
+export default function EstadoModal({ solicitud, onClose, onConfirm }) {
   const [selected, setSelected]         = useState(solicitud.estado)
   // IDs seleccionados (multi-select)
   const [selectedIds, setSelectedIds]   = useState(
@@ -52,6 +27,11 @@ export default function EstadoModal({ solicitud, solicitudes = [], onClose, onCo
   )
   const [recreadores, setRecreadores]   = useState([])
   const [loadingRec, setLoadingRec]     = useState(false)
+  // Horas de la semana y conflictos por recreador, resueltos por el servidor
+  // (GET /solicitudes/{id}/validacion). Antes se calculaban en el navegador y
+  // exigían tener descargadas TODAS las solicitudes.
+  const [validaciones, setValidaciones] = useState({})
+  const [limiteHoras, setLimiteHoras]   = useState(LIMITE_HORAS)
   const [confirming, setConfirming]         = useState(false)
   const [showCountWarning, setShowCountWarning] = useState(false)
   const [tipoHoraExtra, setTipoHoraExtra] = useState(solicitud.tipo_hora_extra || '')
@@ -59,20 +39,42 @@ export default function EstadoModal({ solicitud, solicitudes = [], onClose, onCo
 
   const needsRecreador = selected === 'programado'
   const changed = selected !== solicitud.estado ||
-    (needsRecreador && JSON.stringify(selectedIds.sort()) !== JSON.stringify(
+    (needsRecreador && JSON.stringify([...selectedIds].sort()) !== JSON.stringify(
       (solicitud.recreadores_asignados?.map((r) => r.id) || []).sort()
     ))
   const canContinue = changed && (!needsRecreador || selectedIds.length > 0)
 
+  const horasNuevasServidor = validaciones[selectedIds[0]]?.horas_nuevas
+  const horasNuevas = horasNuevasServidor ?? calcHours(solicitud.hora_inicio, solicitud.hora_fin)
+
   useEffect(() => {
-    if (selected === 'programado' && recreadores.length === 0) {
-      setLoadingRec(true)
-      api.get('/auth/recreadores')
-        .then(({ data }) => setRecreadores(data))
-        .catch(() => {})
-        .finally(() => setLoadingRec(false))
-    }
-  }, [selected])
+    if (selected !== 'programado') return
+    let cancelado = false
+    setLoadingRec(true)
+    api.get('/auth/recreadores')
+      .then(({ data }) => {
+        if (cancelado) return data
+        setRecreadores(data)
+        return data
+      })
+      .then((lista) => {
+        if (cancelado || !lista?.length) return
+        // Una sola petición con todos los candidatos: el servidor devuelve sus
+        // horas de la semana y los conflictos de horario.
+        return api.get(`/solicitudes/${solicitud.id}/validacion`, {
+          params: { recreador_ids: lista.map((r) => r.id).join(',') },
+        }).then(({ data }) => {
+          if (cancelado) return
+          const mapa = {}
+          data.recreadores.forEach((v) => { mapa[v.id] = v })
+          setValidaciones(mapa)
+          if (data.limite_horas) setLimiteHoras(data.limite_horas)
+        })
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelado) setLoadingRec(false) })
+    return () => { cancelado = true }
+  }, [selected, solicitud.id])
 
   const toggleRecreador = (id) => {
     setSelectedIds((prev) =>
@@ -81,24 +83,37 @@ export default function EstadoModal({ solicitud, solicitudes = [], onClose, onCo
     setTipoHoraExtra('')
   }
 
-  // Horas nuevas que agrega esta solicitud
-  const horasNuevas = calcHours(solicitud.hora_inicio, solicitud.hora_fin)
+  const horasDe = (id) => validaciones[id]?.horas_semana ?? 0
+  const conflictosDe = (id) => validaciones[id]?.conflictos ?? []
 
   // Verificar exceso para cualquiera de los seleccionados
   const excedencias = selectedIds.map((id) => {
-    const actual = horasRecreadorEnSemana(id, solicitudes, solicitud.fecha_evento, solicitud.id)
-    const total  = actual + horasNuevas
+    const v = validaciones[id]
+    const actual = horasDe(id)
+    const total  = v ? v.total : actual + horasNuevas
     const rec    = recreadores.find((r) => r.id === id)
-    return { id, nombre: rec?.full_name || rec?.username || `#${id}`, actual, total, excede: total > LIMITE_HORAS }
+    return {
+      id,
+      nombre: v?.nombre || rec?.full_name || rec?.username || `#${id}`,
+      actual,
+      total,
+      excede: v ? v.excede_limite : total > limiteHoras,
+    }
   })
   const hayExceso   = excedencias.some((e) => e.excede)
 
-  // Conflictos de horario para recreadores seleccionados
-  const conflictos = selectedIds.map((id) => {
-    const conflicto = tieneConflictoHorario(id, solicitudes, solicitud)
-    const rec = recreadores.find((r) => r.id === id)
-    return { id, nombre: rec?.full_name || rec?.username || `#${id}`, conflicto }
-  }).filter((c) => c.conflicto)
+  // Conflictos de horario para recreadores seleccionados (los calcula el servidor)
+  const conflictos = selectedIds
+    .map((id) => {
+      const lista = conflictosDe(id)
+      const rec = recreadores.find((r) => r.id === id)
+      return {
+        id,
+        nombre: validaciones[id]?.nombre || rec?.full_name || rec?.username || `#${id}`,
+        conflicto: lista[0] || null,
+      }
+    })
+    .filter((c) => c.conflicto)
   const hayConflicto = conflictos.length > 0
 
   const canProceed  = canContinue && (!hayExceso || tipoHoraExtra)
@@ -206,12 +221,12 @@ export default function EstadoModal({ solicitud, solicitudes = [], onClose, onCo
                     <div className="space-y-1.5">
                       {recreadores.map((r) => {
                         const isChecked = selectedIds.includes(r.id)
-                        const hActual = horasRecreadorEnSemana(r.id, solicitudes, solicitud.fecha_evento, solicitud.id)
-                        const hTotal  = hActual + horasNuevas
-                        const excRec  = hTotal > LIMITE_HORAS
-                        const pct     = Math.min((hActual / LIMITE_HORAS) * 100, 100)
-                        const barCol  = excRec ? 'bg-red-400' : hActual >= LIMITE_HORAS * 0.8 ? 'bg-yellow-400' : 'bg-green-400'
-                        const conflictoRec = tieneConflictoHorario(r.id, solicitudes, solicitud)
+                        const hActual = horasDe(r.id)
+                        const hTotal  = validaciones[r.id]?.total ?? (hActual + horasNuevas)
+                        const excRec  = validaciones[r.id]?.excede_limite ?? (hTotal > limiteHoras)
+                        const pct     = Math.min((hActual / limiteHoras) * 100, 100)
+                        const barCol  = excRec ? 'bg-red-400' : hActual >= limiteHoras * 0.8 ? 'bg-yellow-400' : 'bg-green-400'
+                        const conflictoRec = conflictosDe(r.id).length > 0
                         return (
                           <button
                             key={r.id}
@@ -251,7 +266,7 @@ export default function EstadoModal({ solicitud, solicitudes = [], onClose, onCo
                                   <div className={`h-1 rounded-full ${barCol}`} style={{ width: `${pct}%` }} />
                                 </div>
                                 <p className={`text-[10px] shrink-0 ${excRec ? 'text-red-600 font-semibold' : 'text-ink-400'}`}>
-                                  {fmt(hActual)}/{LIMITE_HORAS}h
+                                  {fmt(hActual)}/{limiteHoras}h
                                 </p>
                               </div>
                             </div>
@@ -296,11 +311,11 @@ export default function EstadoModal({ solicitud, solicitudes = [], onClose, onCo
                         d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
                     <div>
-                      <p className="text-xs font-bold text-orange-800">Se superan las {LIMITE_HORAS} horas semanales</p>
+                      <p className="text-xs font-bold text-orange-800">Se superan las {limiteHoras} horas semanales</p>
                       <div className="mt-1 space-y-0.5">
                         {excedencias.filter((e) => e.excede).map((e) => (
                           <p key={e.id} className="text-xs text-orange-600">
-                            <strong>{e.nombre}</strong>: {fmt(e.total)}h (+{fmt(e.total - LIMITE_HORAS)}h excedente)
+                            <strong>{e.nombre}</strong>: {fmt(e.total)}h (+{fmt(e.total - limiteHoras)}h excedente)
                           </p>
                         ))}
                       </div>
@@ -415,8 +430,8 @@ export default function EstadoModal({ solicitud, solicitudes = [], onClose, onCo
                           <div className="text-left">
                             <p className="text-sm font-semibold text-blue-800">{r.full_name || r.username}</p>
                             <p className="text-xs text-blue-500">
-                              {fmt(e?.total || 0)}h / {LIMITE_HORAS}h
-                              {e?.excede && ` · +${fmt(e.total - LIMITE_HORAS)}h extra`}
+                              {fmt(e?.total || 0)}h / {limiteHoras}h
+                              {e?.excede && ` · +${fmt(e.total - limiteHoras)}h extra`}
                             </p>
                           </div>
                         </div>
@@ -455,7 +470,7 @@ export default function EstadoModal({ solicitud, solicitudes = [], onClose, onCo
                       <p key={e.id} className="text-xs text-orange-700 leading-relaxed">
                         <span className="font-bold">{e.nombre}</span> con lo asignado se pasará
                         del total de horas{' '}
-                        <span className="font-bold">({fmt(e.total)}h / {LIMITE_HORAS}h)</span>.
+                        <span className="font-bold">({fmt(e.total)}h / {limiteHoras}h)</span>.
                         Se registrará como{' '}
                         <span className="font-bold">
                           {TIPOS_HORA_EXTRA.find(t => t.value === tipoHoraExtra)?.label}
