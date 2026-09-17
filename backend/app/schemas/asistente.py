@@ -1,10 +1,13 @@
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
 
 class ConsultaAsistenteRequest(BaseModel):
     pregunta: str = Field(..., min_length=1, max_length=300)
+    # Contexto del turno anterior (recreador, fecha, tema) para poder seguir la
+    # conversación: "¿y mañana?", "¿y cuántas horas?"
+    contexto: Optional[Dict[str, Any]] = None
 
 
 class BloqueAsistente(BaseModel):
@@ -21,6 +24,11 @@ class ConteoAsistente(BaseModel):
     valor: float
 
 
+class AccionAsistente(BaseModel):
+    tab: str
+    etiqueta: str
+
+
 class RespuestaAsistente(BaseModel):
     respuesta: str
     tipo: str = "texto"                 # texto | actividades | personas | conteos | cotizaciones
@@ -29,3 +37,5 @@ class RespuestaAsistente(BaseModel):
     extra: Optional[str] = None
     sugerencias: List[str] = []
     contexto: Optional[str] = None      # p. ej. "hoy, jueves 17 de septiembre de 2026"
+    acciones: List[AccionAsistente] = []
+    contexto_conversacion: Dict[str, Any] = {}

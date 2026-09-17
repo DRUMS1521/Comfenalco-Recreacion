@@ -38,7 +38,14 @@ def _sin_acentos(texto: str) -> str:
 
 
 def _norm(texto: str) -> str:
-    return _sin_acentos((texto or "").lower()).strip()
+    """Minúsculas, sin acentos y sin puntuación en los extremos.
+
+    Se quitan los signos de apertura/cierre porque las preguntas llegan como
+    "¿y mañana?" y los patrones anclados al inicio (para reconocer seguimientos)
+    necesitan empezar por la palabra.
+    """
+    t = _sin_acentos((texto or "").lower()).strip()
+    return t.strip("¿?¡!.,;:\"'()[]{} ").strip()
 
 
 def _fecha_larga(f: date) -> str:
@@ -116,6 +123,31 @@ def _detectar_fecha(pregunta: str) -> Tuple[Optional[date], Optional[date], str]
     return hoy, hoy, "hoy"
 
 
+def _menciona_fecha(pregunta: str) -> bool:
+    t = _norm(pregunta)
+    if any(p in t for p in ("hoy", "manana", "ayer", "pasado manana", "esta semana",
+                            "proxima semana", "semana entrante", "este mes")):
+        return True
+    if any(re.search(rf"\b{_norm(d)}\b", t) for d in DIAS):
+        return True
+    if re.search(r"\b\d{1,2}\s+de\s+[a-z]+", t) or re.search(r"\b\d{1,2}/\d{1,2}\b", t) \
+            or re.search(r"\b\d{4}-\d{2}-\d{2}\b", t):
+        return True
+    return False
+
+
+def _es_seguimiento(pregunta: str) -> bool:
+    """Frases que continúan la conversación anterior: 'y mañana?', 'y sus horas?'."""
+    t = _norm(pregunta)
+    if re.match(r"^(y|e)\b", t):
+        return True
+    if len(t.split()) <= 5 and any(p in t for p in ("sus ", "su ", "de el", "de ella",
+                                                    "mismo", "misma", "ese", "esa", "eso",
+                                                    "tambien", "también", "ahora", "entonces")):
+        return True
+    return False
+
+
 def _buscar_recreador(db: Session, pregunta: str, excluir_id: Optional[int] = None) -> Optional[User]:
     """Encuentra al recreador mencionado.
 
@@ -139,7 +171,21 @@ def _buscar_recreador(db: Session, pregunta: str, excluir_id: Optional[int] = No
     if mejor:
         return mejor
 
-    # (2) token único
+    # (2) parecido (tolera erratas: "gabrel" -> "gabriel")
+    import difflib
+    palabras = [w for w in t.split() if len(w) >= 4]
+    alias = []
+    for u in candidatos:
+        for nombre in {_norm(u.full_name or ""), _norm(u.username.replace(".", " "))}:
+            alias += [(x, u) for x in nombre.split() if len(x) >= 4]
+    for palabra in palabras:
+        cercanos = difflib.get_close_matches(palabra, [a for a, _ in alias], n=2, cutoff=0.85)
+        if cercanos:
+            usuarios = {u.id: u for a, u in alias if a == cercanos[0]}
+            if len(usuarios) == 1:
+                return list(usuarios.values())[0]
+
+    # (3) token único
     coincidencias: Dict[int, User] = {}
     for u in candidatos:
         tokens = set()
@@ -534,108 +580,325 @@ def _cotizaciones(db: Session, user: User, pregunta: str,
     }
 
 
-# ── enrutador de intenciones ─────────────────────────────────────────────────
-def responder(db: Session, user: User, pregunta: str) -> Dict[str, Any]:
-    """Resuelve la pregunta y devuelve la respuesta estructurada."""
+def _menos_carga(db: Session, user: User, pregunta: str) -> Dict[str, Any]:
+    desde, hasta, etiqueta = _detectar_fecha(pregunta)
+    recreadores = db.query(User).filter(User.is_recreador == True, User.is_active == True).all()  # noqa: E712
+    conteo: Dict[int, int] = {u.id: 0 for u in recreadores}
+    horas: Dict[int, float] = {u.id: 0.0 for u in recreadores}
+    for s in db.query(Solicitud).filter(
+        Solicitud.fecha_evento >= desde.isoformat(),
+        Solicitud.fecha_evento <= hasta.isoformat(),
+        Solicitud.estado == "programado",
+    ).all():
+        for r in s.recreadores:
+            if r.id in conteo:
+                conteo[r.id] += 1
+                horas[r.id] += calc_hours(s.hora_inicio, s.hora_fin)
+    ordenados = sorted(recreadores, key=lambda u: (conteo[u.id], horas[u.id], _nombre(u)))
+    items = [{"titulo": _nombre(u), "subtitulo": f"{conteo[u.id]} actividades · {round(horas[u.id], 1)} h",
+              "meta": "Menor carga" if i == 0 else "", "estado": "libre" if conteo[u.id] == 0 else None}
+             for i, u in enumerate(ordenados[:8])]
+    return {
+        "respuesta": (f"Con menos carga {etiqueta} ({desde.isoformat()}): "
+                      f"**{_nombre(ordenados[0])}** con {conteo[ordenados[0].id]} actividades "
+                      f"y {round(horas[ordenados[0].id], 1)} h."),
+        "tipo": "personas", "items": items,
+        "sugerencias": ["¿Qué recreadores están libres hoy?", "¿Qué actividades hay hoy?"],
+    }
+
+
+def _sin_asignar(db: Session, user: User, pregunta: str) -> Dict[str, Any]:
+    desde, hasta, etiqueta = _detectar_fecha(pregunta)
+    solicitudes = (
+        db.query(Solicitud)
+        .filter(Solicitud.fecha_evento >= desde.isoformat(),
+                Solicitud.fecha_evento <= hasta.isoformat(),
+                Solicitud.estado == "programado",
+                Solicitud.recreador_id.is_(None))
+        .all()
+    )
+    if not solicitudes:
+        return {"respuesta": (f"No hay actividades programadas sin recreador asignado {etiqueta}. "
+                              "Todas tienen al menos una persona."),
+                "tipo": "texto",
+                "sugerencias": ["¿Qué actividades hay hoy?", "¿Quién tiene menos carga hoy?"]}
+    return {"respuesta": f"Hay **{len(solicitudes)} actividades sin recreador asignado** {etiqueta}.",
+            "tipo": "actividades",
+            "items": [_tarjeta_actividad(s, con_fecha=True) for s in solicitudes[:10]],
+            "sugerencias": ["¿Qué recreadores están libres hoy?"]}
+
+
+def _top_empresas(db: Session, user: User, pregunta: str) -> Dict[str, Any]:
+    desde, hasta, etiqueta = _detectar_fecha(pregunta)
+    filas = (
+        db.query(Solicitud.empresa, func.count(Solicitud.id))
+        .filter(Solicitud.fecha_evento >= desde.isoformat(),
+                Solicitud.fecha_evento <= hasta.isoformat(),
+                Solicitud.estado.in_(["programado", "finalizado"]))
+        .group_by(Solicitud.empresa)
+        .order_by(func.count(Solicitud.id).desc())
+        .limit(8)
+        .all()
+    )
+    if not filas:
+        return {"respuesta": f"No hay actividades registradas {etiqueta}.", "tipo": "texto",
+                "sugerencias": ["¿Qué actividades hay hoy?"]}
+    items = [{"titulo": nombre, "subtitulo": f"{n} actividades", "meta": "Más actividad" if i == 0 else ""}
+             for i, (nombre, n) in enumerate(filas)]
+    return {
+        "respuesta": (f"{etiqueta.capitalize()} la empresa con más actividades es "
+                      f"**{filas[0][0]}** con {filas[0][1]}."),
+        "tipo": "personas", "items": items,
+        "sugerencias": ["¿Qué actividades hay hoy?", "¿Cuántas solicitudes hay programadas?"],
+    }
+
+
+def _recreadores_activos(db: Session) -> Dict[str, Any]:
+    activos = db.query(func.count(User.id)).filter(User.is_recreador == True,  # noqa: E712
+                                                   User.is_active == True).scalar() or 0  # noqa: E712
+    inactivos = db.query(func.count(User.id)).filter(User.is_recreador == True,  # noqa: E712
+                                                     User.is_active == False).scalar() or 0  # noqa: E712
+    return {"respuesta": (f"Hay **{activos} recreadores activos**"
+                          + (f" y {inactivos} inactivos." if inactivos else ".")),
+            "tipo": "conteos",
+            "conteos": [{"etiqueta": "Activos", "valor": activos},
+                        {"etiqueta": "Inactivos", "valor": inactivos}],
+            "sugerencias": ["¿Qué recreadores están libres hoy?", "¿Quién tiene menos carga hoy?"]}
+
+
+# ── enrutador de intenciones (con memoria de la conversación) ───────────────
+def _acciones_para(tipo: str) -> List[Dict[str, str]]:
+    if tipo == "cotizaciones":
+        return [{"tab": "cotizaciones", "etiqueta": "Ir a Cotizaciones"}]
+    if tipo in ("actividades", "personas"):
+        return [{"tab": "calendario", "etiqueta": "Ver calendario"}]
+    return []
+
+
+def _cerrar(respuesta: Dict[str, Any], contexto: Dict[str, Any],
+            tema: Optional[str] = None, recreador: Optional[User] = None,
+            empresa: Optional[str] = None, fecha: Optional[date] = None,
+            etiqueta_fecha: Optional[str] = None) -> Dict[str, Any]:
+    """Completa la respuesta con el contexto que se recordará en el próximo turno."""
+    ctx = dict(contexto or {})
+    if tema:
+        ctx["tema"] = tema
+    if recreador:
+        ctx["recreador_id"] = recreador.id
+        ctx["recreador_nombre"] = _nombre(recreador)
+    if empresa:
+        ctx["empresa"] = empresa
+    if fecha:
+        ctx["fecha"] = fecha.isoformat()
+        ctx["fecha_etiqueta"] = etiqueta_fecha or _etiqueta_fecha(fecha)
+    respuesta["contexto_conversacion"] = ctx
+    respuesta["acciones"] = _acciones_para(respuesta.get("tipo", "texto"))
+    return respuesta
+
+
+def responder(db: Session, user: User, pregunta: str,
+               contexto: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Resuelve la pregunta teniendo en cuenta lo hablado antes.
+
+    `contexto` es el que devolvió la respuesta anterior (recreador, fecha y tema).
+    Así funcionan los seguimientos del tipo "¿y mañana?" o "¿y cuántas horas?".
+    """
+    contexto = dict(contexto or {})
     t = _norm(pregunta)
     if not t:
-        return _ayuda(user)
+        return _cerrar(_ayuda(user), {})
 
-    saludo = bool(re.search(r"\b(hola|buenas|buenos dias|buenas tardes|buenas noches|hey)\b", t))
+    # ── charla corta ──
+    if re.search(r"\b(gracias|mil gracias|muchas gracias|te agradezco)\b", t):
+        return _cerrar({
+            "respuesta": f"¡Con gusto, {_nombre(user).split(' ')[0]}! Si necesitas algo más, aquí estoy.",
+            "tipo": "texto",
+            "sugerencias": ["¿Qué actividades hay hoy?", "¿Quién tiene menos carga hoy?"],
+        }, contexto)
+    if any(p in t for p in ("quien eres", "que eres", "como te llamas", "eres un robot",
+                            "eres humano", "eres una ia")):
+        return _cerrar({
+            "respuesta": ("Soy el asistente interno de Comfenalco Tolima: consulto la base del "
+                          "sistema (agenda de recreadores, solicitudes, horas y cotizaciones) y "
+                          "te respondo al instante. No soy un modelo de lenguaje: trabajo con "
+                          "reglas y datos reales, así que si algo no lo entiendo te lo digo."),
+            "tipo": "texto",
+            "sugerencias": ["¿Qué puedes hacer?", "¿Qué actividades hay hoy?"],
+        }, contexto)
+    if any(p in t for p in ("adios", "hasta luego", "chao", "nos vemos")):
+        return _cerrar({"respuesta": f"¡Hasta luego, {_nombre(user).split(' ')[0]}! "
+                                     "Quedo pendiente de lo que necesites.",
+                        "tipo": "texto", "sugerencias": ["¿Qué actividades hay hoy?"]}, contexto)
+
     pide_ayuda = any(p in t for p in ("que puedes hacer", "ayuda", "como funciona",
                                       "que sabes", "instrucciones", "opciones"))
-
-    # 1) saludo o ayuda
+    saludo = bool(re.search(r"\b(hola|buenas|buenos dias|buenas tardes|buenas noches|hey)\b", t))
     if pide_ayuda or (saludo and len(t.split()) <= 4):
-        return _ayuda(user)
+        return _cerrar(_ayuda(user), {})
 
-    # 2) cotizaciones (antes que solicitudes, para no confundir "cotizaciones de X")
-    if "cotiza" in t:
+    # ── contexto del turno anterior ──
+    seg = _es_seguimiento(pregunta)
+    menciona_fecha = _menciona_fecha(pregunta)
+    tema_previo = contexto.get("tema")
+    rec_previo = None
+    if contexto.get("recreador_id"):
+        rec_previo = db.query(User).filter(User.id == contexto["recreador_id"]).first()
+
+    # Temas explícitos de la frase (antes de decidir qué se hereda)
+    menciona_horas = "hora" in t
+    menciona_cotiz = "cotiza" in t
+    menciona_agenda = any(p in t for p in ("actividad", "actividades", "agenda", "que tiene",
+                                           "que tengo", "que hace", "programad", "turno",
+                                           "tareas", "horario", "eventos"))
+    menciona_libre = "libre" in t or "disponible" in t
+    # Otras intenciones con palabras propias: también cuentan como "tema nuevo",
+    # para que un seguimiento como "¿y quién tiene menos carga?" no herede la fecha
+    # de la pregunta anterior.
+    menciona_otro = (
+        any(p in t for p in ("menos carga", "quien tiene menos", "mas libre", "menos actividades",
+                             "mas descansado", "sin asignar", "sin recreador", "sin nadie",
+                             "falta asignar", "cuantos recreadores", "recreadores activos",
+                             "que empresas", "empresas con mas", "top empresas",
+                             "mas actividades tiene"))
+        or "solicitud" in t
+    )
+    tema_explicito = ("horas" if menciona_horas else
+                      "cotizaciones" if menciona_cotiz else
+                      "agenda" if (menciona_agenda or menciona_libre) else
+                      "otro" if menciona_otro else None)
+
+    # Solo una continuación PURA (sin tema ni fecha propios) hereda la fecha anterior:
+    # así "¿y el lunes?" usa su fecha, y "¿y quién tiene menos carga?" vuelve a hoy.
+    if seg and not menciona_fecha and tema_explicito is None and contexto.get("fecha"):
+        pregunta = f"{pregunta} {contexto['fecha']}"
+
+    desde, hasta, etiqueta = _detectar_fecha(pregunta)
+    rec = _buscar_recreador(db, pregunta, excluir_id=user.id if user.is_recreador else None)
+    if not rec and seg and rec_previo:
+        rec = rec_previo
+
+    # ── qué tema pide la frase ──
+    # Manda lo explícito; si no dice nada y es un seguimiento, se hereda el tema
+    # anterior. Un seguimiento con fecha propia ("¿y mañana?", "¿y el lunes?") se
+    # entiende como agenda.
+    if tema_explicito and tema_explicito != "otro":
+        tema = tema_explicito
+    elif seg and menciona_fecha:
+        tema = "agenda"
+    elif seg:
+        tema = tema_previo
+    else:
+        tema = None
+
+    # ── intenciones específicas (solo con palabras propias, no heredan) ──
+    if any(p in t for p in ("menos carga", "quien tiene menos", "mas libre", "menos actividades",
+                            "mas descansado")):
+        r = _menos_carga(db, user, pregunta)
+        return _cerrar(r, contexto, tema="carga", fecha=desde, etiqueta_fecha=etiqueta)
+    if any(p in t for p in ("sin asignar", "sin recreador", "sin nadie", "falta asignar")):
+        r = _sin_asignar(db, user, pregunta)
+        return _cerrar(r, contexto, tema="sin_asignar", fecha=desde, etiqueta_fecha=etiqueta)
+    if any(p in t for p in ("cuantos recreadores", "recreadores activos")):
+        return _cerrar(_recreadores_activos(db), contexto, tema="recreadores")
+    if any(p in t for p in ("que empresas", "empresas con mas", "top empresas",
+                            "mas actividades tiene")):
+        r = _top_empresas(db, user, pregunta)
+        return _cerrar(r, contexto, tema="empresas", fecha=desde, etiqueta_fecha=etiqueta)
+
+    # ── cotizaciones ──
+    if tema == "cotizaciones":
         mencion = re.search(r"(?:de|para|cliente)\s+([a-z0-9 .&-]{3,40})", t)
-        empresa = mencion.group(1).strip() if mencion else None
+        empresa = mencion.group(1).strip() if mencion else contexto.get("empresa")
         if empresa and empresa in ("esta semana", "este mes", "hoy", "manana"):
             empresa = None
-        return _cotizaciones(db, user, pregunta, empresa)
+        r = _cotizaciones(db, user, pregunta, empresa)
+        return _cerrar(r, contexto, tema="cotizaciones", empresa=empresa, fecha=desde,
+                       etiqueta_fecha=etiqueta)
 
-    # 3) horas de un recreador
-    if any(p in t for p in ("cuantas horas", "horas lleva", "horas tiene", "horas semanales",
-                            "horas llevo", "cuantas horas llevo")):
-        rec = _buscar_recreador(db, pregunta, excluir_id=user.id if user.is_recreador else None)
-        if rec:
-            return _horas_de_recreador(db, user, pregunta, rec)
-        if user.is_recreador or "llevo" in t:
-            return _horas_de_recreador(db, user, pregunta, user)
+    # ── horas ──
+    if tema == "horas":
+        objetivo = rec or (user if user.is_recreador else None)
+        if objetivo:
+            r = _horas_de_recreador(db, user, pregunta, objetivo)
+            return _cerrar(r, contexto, tema="horas", recreador=objetivo, fecha=desde,
+                           etiqueta_fecha=etiqueta)
 
-    # 4) una empresa concreta (tiene prioridad: "cuántas solicitudes tiene Cortolima")
+    # ── una empresa concreta ──
     empresa = _detectar_empresa(db, pregunta)
+    if not empresa and seg and contexto.get("empresa"):
+        empresa = contexto["empresa"]
     if empresa and not user.is_cotizador and not user.is_recreador:
-        return _empresa(db, user, pregunta, empresa)
+        r = _empresa(db, user, pregunta, empresa)
+        return _cerrar(r, contexto, tema="empresa", empresa=empresa, fecha=desde,
+                       etiqueta_fecha=etiqueta)
 
-    # 4b) conteos explícitos de solicitudes ("cuántas solicitudes hay programadas")
+    # ── conteos de solicitudes ──
     if "solicitud" in t and any(p in t for p in ("cuantas", "cuántas", "total", "hay",
                                                  "pendientes", "corregir", "programad",
                                                  "finalizad", "resumen")):
-        return _solicitudes_resumen(db, user, pregunta)
+        r = _solicitudes_resumen(db, user, pregunta)
+        return _cerrar(r, contexto, tema="solicitudes")
 
-    # 5) actividades de un recreador concreto
-    menciona_agenda = any(p in t for p in ("actividad", "actividades", "agenda", "que tiene",
-                                           "que tengo", "que hace", "programad", "turno",
-                                           "tareas", "horario"))
-    if menciona_agenda or "libre" in t:
-        rec = _buscar_recreador(db, pregunta, excluir_id=user.id if user.is_recreador else None)
-
-        # "mis actividades" / "qué tengo"
+    # ── agenda ──
+    if tema == "agenda":
         propio = any(p in t for p in ("mi agenda", "mis actividades", "que tengo", "mi turno",
                                       "mis tareas", "tengo hoy", "tengo manana", "mi horario"))
         if propio and user.is_recreador:
-            return _mis_actividades(db, user, pregunta)
+            r = _mis_actividades(db, user, pregunta)
+            return _cerrar(r, contexto, tema="agenda", recreador=user, fecha=desde,
+                           etiqueta_fecha=etiqueta)
         if propio and _alcance_admin(user):
-            return _actividades_globales(db, user, pregunta)
-
-        # disponibilidad de recreadores
-        if "libre" in t or "disponible" in t:
-            return _disponibles(db, user, pregunta)
-
+            r = _actividades_globales(db, user, pregunta)
+            return _cerrar(r, contexto, tema="agenda", fecha=desde, etiqueta_fecha=etiqueta)
+        if menciona_libre:
+            r = _disponibles(db, user, pregunta)
+            return _cerrar(r, contexto, tema="disponibilidad", fecha=desde, etiqueta_fecha=etiqueta)
         if rec:
-            return _actividades_de_recreador(db, user, pregunta, rec)
-
-        # nombre ambiguo ("daniel" -> ¿Rincón, Ruiz o Juan Daniel?)
-        if not rec:
+            r = _actividades_de_recreador(db, user, pregunta, rec)
+            return _cerrar(r, contexto, tema="actividades", recreador=rec, fecha=desde,
+                           etiqueta_fecha=etiqueta)
+        if not seg:
             candidatos = _recreadores_ambiguos(db, pregunta)
             if len(candidatos) > 1 and _alcance_admin(user):
-                return {
+                return _cerrar({
                     "respuesta": ("Con ese nombre puedo referirme a varios recreadores: "
                                   + ", ".join(_nombre(c) for c in candidatos[:6])
                                   + ". ¿Cuál de ellos?"),
                     "tipo": "texto",
                     "sugerencias": [f"¿Qué actividades tiene {_nombre(c)} hoy?" for c in candidatos[:3]],
-                }
-
-        # agenda global (solo administración)
+                }, contexto)
         if _alcance_admin(user):
-            return _actividades_globales(db, user, pregunta)
+            r = _actividades_globales(db, user, pregunta)
+            return _cerrar(r, contexto, tema="agenda", fecha=desde, etiqueta_fecha=etiqueta)
         if user.is_recreador:
-            return _mis_actividades(db, user, pregunta)
+            r = _mis_actividades(db, user, pregunta)
+            return _cerrar(r, contexto, tema="agenda", recreador=user, fecha=desde,
+                           etiqueta_fecha=etiqueta)
 
-    # 7) resumen de solicitudes
+    # ── resumen general ──
     if any(p in t for p in ("cuantas solicitudes", "solicitudes hay", "pendientes", "por corregir",
                             "programadas", "finalizadas", "resumen", "totales")):
-        return _solicitudes_resumen(db, user, pregunta)
+        r = _solicitudes_resumen(db, user, pregunta)
+        return _cerrar(r, contexto, tema="solicitudes")
 
-    # 8) roles sin módulo de recreación: se les dice qué sí pueden consultar
+    # ── roles sin módulo de recreación ──
     if (user.is_promotor or user.is_cotizador) and not _alcance_admin(user):
         if user.is_cotizador:
-            return {"respuesta": ("Tu rol es de cotizaciones, así que puedo ayudarte con el "
-                                  "catálogo de proveedores y las cotizaciones."),
-                    "tipo": "texto",
-                    "sugerencias": ["¿Cuánto llevamos cotizado?", "Muéstrame la última cotización"]}
-        return {"respuesta": ("Puedo consultar tus solicitudes y tus cotizaciones. "
-                              "Las agendas de recreadores las ve administración."),
+            return _cerrar({
+                "respuesta": ("Tu rol es de cotizaciones, así que puedo ayudarte con el catálogo "
+                              "de proveedores y las cotizaciones."),
                 "tipo": "texto",
-                "sugerencias": ["¿Cuántas solicitudes tengo?", "¿Cuánto llevamos cotizado?"]}
+                "sugerencias": ["¿Cuánto llevamos cotizado?", "Muéstrame la última cotización"],
+            }, contexto)
+        return _cerrar({
+            "respuesta": ("Puedo consultar tus solicitudes y tus cotizaciones. Las agendas de "
+                          "recreadores las ve administración."),
+            "tipo": "texto",
+            "sugerencias": ["¿Cuántas solicitudes tengo?", "¿Cuánto llevamos cotizado?"],
+        }, contexto)
 
-    # 7) sin intención reconocida
+    # ── sin intención reconocida ──
     base = _ayuda(user)
     base["respuesta"] = ("No estoy seguro de haber entendido. Puedo consultar la agenda de los "
                          "recreadores, las solicitudes y las cotizaciones. Prueba con:")
-    return base
+    return _cerrar(base, contexto)

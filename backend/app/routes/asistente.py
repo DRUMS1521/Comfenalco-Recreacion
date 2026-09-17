@@ -41,6 +41,6 @@ def consultar(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    respuesta = svc.responder(db, current_user, data.pregunta)
+    respuesta = svc.responder(db, current_user, data.pregunta, data.contexto)
     respuesta["contexto"] = _contexto()
     return respuesta

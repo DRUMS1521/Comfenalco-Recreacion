@@ -34,6 +34,10 @@ export function AuthProvider({ children }) {
     setUser(null)
     localStorage.removeItem('auth')
     sessionStorage.removeItem('auth')
+    // El historial del asistente vive en la sesión: al cerrar sesión se borra.
+    // (Cerrar o minimizar el chat NO lo pierde.)
+    ;['asistente_chat', 'asistente_ctx', 'asistente_modo', 'asistente_visto',
+      'asistente_feedback'].forEach((clave) => sessionStorage.removeItem(clave))
   }
 
   return (
