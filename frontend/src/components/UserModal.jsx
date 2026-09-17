@@ -84,9 +84,9 @@ export default function UserModal({ user, onClose, onSave, saving }) {
   const cargoDesc = CARGO_DESCRIPCION[form.cargo] || ''
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="modal-overlay">
       {/* Overlay */}
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0" onClick={onClose} />
 
       {/* Modal */}
       <div className="relative bg-white rounded-md border border-ink-200 w-full max-w-lg animate-in fade-in zoom-in duration-200 overflow-hidden">

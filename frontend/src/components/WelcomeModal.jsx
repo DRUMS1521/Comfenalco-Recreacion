@@ -202,7 +202,7 @@ export default function WelcomeModal({ user, solicitudes, resumen, onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div className="modal-overlay">
       <div
         style={{ animation: 'welcomeIn .4s cubic-bezier(.22,1,.36,1)' }}
         className="bg-white rounded-md border border-ink-200 w-full max-w-sm overflow-hidden"

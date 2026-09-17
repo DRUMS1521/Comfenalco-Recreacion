@@ -82,7 +82,7 @@ export default function HoraExtraManualModal({ registro, recreadores, onClose, o
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+    <div className="modal-overlay">
       <div className="relative bg-white rounded-md border border-ink-200 w-full max-w-md overflow-hidden">
         {/* Header */}
         <div className="bg-ink-900 border-b-2 border-accent-500 px-5 py-4">

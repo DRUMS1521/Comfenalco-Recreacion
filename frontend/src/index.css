@@ -153,7 +153,11 @@
   /* Modal: entrada suave y fondo sin blur en móvil (el desenfoque de pantalla
      completa es una de las operaciones más caras en GPU móvil). */
   .modal-overlay {
-    @apply fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-900/55;
+    /* overflow-hidden: el overlay nunca debe desplazarse; si el contenido no cabe,
+       se desplaza DENTRO del panel (antes el modal se salía de la ventana). */
+    /* z-[60]: por encima del rail del sidebar (z-50) y de la barra móvil (z-40),
+       para que la atenuación cubra toda la pantalla, no solo el contenido. */
+    @apply fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 bg-ink-900/55 overflow-hidden;
     animation: fadeIn 0.16s ease-out both;
   }
   /* El panel es el hijo que no es la capa de clic (algunos modales la incluyen). */
@@ -190,12 +194,28 @@
 @keyframes shimmer {
   100% { transform: translateX(100%); }
 }
-/* Las vistas que aparecen al cambiar de pestaña entran con un desplazamiento
-   mínimo en vez de aparecer de golpe. */
+/* Las vistas que aparecen al cambiar de pestaña entran con un fundido suave.
+   IMPORTANTE: aquí NO se puede usar `transform` (ni `scale`, ni `filter`): un
+   ancestro con transform crea un bloque contenedor y rompe el `position: fixed`
+   de los modales que se renderizan dentro de la pestaña (quedaban desplazados y
+   sin atenuar el resto de la pantalla). */
 @keyframes viewIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 .view-enter {
-  animation: viewIn 0.22s ease-out both;
+  /* Sin fill-mode persistente: con `both` el efecto de opacidad queda vivo y eso
+     crea un contexto de apilamiento que encierra a los modales de la pestaña por
+     debajo del rail del sidebar (el fondo del modal no los atenuaba). */
+  animation: viewIn 0.22s ease-out;
+}
+
+/* ── Los modales no deben heredar márgenes del contenedor ────────────────────
+   Las vistas usan `space-y-*` para separar sus bloques, y esa utilidad aplica
+   `margin-top` a TODOS sus hijos: cuando el modal se renderiza dentro de esa
+   vista heredaba 16 px de margen y su fondo quedaba 16 px por debajo del borde
+   superior (dejaba una franja sin atenuar). `!important` porque la regla de
+   `space-y-*` tiene más especificidad que una clase suelta. */
+.modal-overlay {
+  margin: 0 !important;
 }
