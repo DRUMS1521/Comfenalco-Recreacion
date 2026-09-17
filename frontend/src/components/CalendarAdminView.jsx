@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import api from '../services/api'
 import { formatHora } from '../utils/timeFormat'
 import { calcHours, getMondayOfDate as getMondayOf, toYMD } from '../utils/hours'
+import useSolicitudesRango from '../hooks/useSolicitudesRango'
 
 const DIAS_SEMANA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 const DIAS_FULL   = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
@@ -31,7 +32,7 @@ function EmptyCell() {
   return <div className="min-h-[52px]" />
 }
 
-export default function CalendarAdminView({ solicitudes, onVerDetalle }) {
+export default function CalendarAdminView({ onVerDetalle }) {
   const [weekStart, setWeekStart] = useState(() => getMondayOf(new Date()))
   const [recreadores, setRecreadores] = useState([])
   const [loadingRec, setLoadingRec] = useState(true)
@@ -63,8 +64,10 @@ export default function CalendarAdminView({ solicitudes, onVerDetalle }) {
   }
   const goToday = () => setWeekStart(getMondayOf(new Date()))
 
-  // Solicitudes programadas de esta semana
+  // Solicitudes programadas de esta semana (se piden al servidor por rango:
+  // antes se filtraban en el navegador sobre la lista completa)
   const weekDayStrings = weekDays.map(toYMD)
+  const { solicitudes, cargando } = useSolicitudesRango(weekDayStrings[0], weekDayStrings[6])
   const programadas = solicitudes.filter(
     (s) => s.estado === 'programado' && weekDayStrings.includes(s.fecha_evento)
   )
@@ -109,6 +112,12 @@ export default function CalendarAdminView({ solicitudes, onVerDetalle }) {
 
   return (
     <div className="space-y-4">
+      {cargando && (
+        <div className="flex items-center justify-center gap-2 py-3 text-xs text-ink-400">
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600" />
+          Cargando actividades…
+        </div>
+      )}
       {/* Navegación de semana */}
       <div className="flex items-center justify-between gap-2">
         <button onClick={prevWeek}

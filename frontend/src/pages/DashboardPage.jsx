@@ -220,7 +220,6 @@ export default function DashboardPage() {
   // Dataset completo: solo lo usan los calendarios y las vistas por día (se carga
   // bajo demanda). El listado del admin usa paginación en servidor.
   const [solicitudes, setSolicitudes] = useState([])
-  const [cargandoCompletas, setCargandoCompletas] = useState(false)
   // Página actual del listado (admin) resuelta en el servidor
   const [pagina, setPagina] = useState({ items: [], total: 0, page: 1, page_size: PAGE_SIZE, pages: 1 })
   // Contadores por estado resueltos con GROUP BY en el servidor
@@ -289,7 +288,6 @@ export default function DashboardPage() {
   /** Lista completa bajo demanda (calendarios, vistas por día, recreador/promotor). */
   const fetchListaCompleta = useCallback(async (force = false) => {
     if (!force && solicitudes.length) return
-    setCargandoCompletas(true)
     try {
       const { data } = await api.get('/solicitudes/', {
         params: { incluir_administrativo: incluirAdmin },
@@ -297,8 +295,6 @@ export default function DashboardPage() {
       setSolicitudes(data)
     } catch (e) {
       console.error(e)
-    } finally {
-      setCargandoCompletas(false)
     }
   }, [solicitudes.length, incluirAdmin])
 
@@ -323,11 +319,10 @@ export default function DashboardPage() {
     if (isAdmin) {
       await Promise.all([fetchPagina(), fetchResumen()])
       fetchEventosHoy()
-      if (solicitudes.length) fetchListaCompleta(true)
     } else {
       await fetchListaCompleta(true)
     }
-  }, [isAdmin, fetchPagina, fetchResumen, fetchEventosHoy, fetchListaCompleta, solicitudes.length])
+  }, [isAdmin, fetchPagina, fetchResumen, fetchEventosHoy, fetchListaCompleta])
 
   useEffect(() => { fetchResumen() }, [fetchResumen])
 
@@ -344,9 +339,6 @@ export default function DashboardPage() {
 
   useEffect(() => { if (tab === 'lista') fetchEventosHoy() }, [tab, fetchEventosHoy])
 
-  // El calendario necesita el dataset completo: se carga solo al abrir esa pestaña
-  useEffect(() => { if (tab === 'calendario') fetchListaCompleta() }, [tab, fetchListaCompleta])
-
   useEffect(() => {
     if (!sessionStorage.getItem('welcomeShown')) {
       sessionStorage.setItem('welcomeShown', '1')
@@ -362,13 +354,6 @@ export default function DashboardPage() {
 
   // Reset page cuando cambia filtro, búsqueda u orden
   useEffect(() => { setPage(1) }, [filtroEstado, searchDebounced, sortDir])
-
-  // Si el dataset completo ya estaba cargado (calendario), se recarga al cambiar
-  // el interruptor de administrativas para no mostrar datos desactualizados.
-  useEffect(() => {
-    if (solicitudes.length) fetchListaCompleta(true)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [incluirAdmin])
 
   // La búsqueda se envía al servidor con un pequeño retardo (evita una petición por tecla)
   useEffect(() => {
@@ -975,17 +960,14 @@ export default function DashboardPage() {
                   </div>
                 )}
                 <div className="p-4 sm:p-6">
-                  {isAdmin && cargandoCompletas ? (
-                    <div className="flex items-center justify-center py-16">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
-                    </div>
-                  ) : isAdmin
+                  {/* Cada calendario pide su propio rango de fechas al servidor */}
+                  {isAdmin
                     ? calView === 'semana'
-                      ? <CalendarAdminView solicitudes={solicitudes} onVerDetalle={setDetailTarget} />
-                      : <CalendarView solicitudes={solicitudes} isAdmin={true} onVerDetalle={setDetailTarget} />
+                      ? <CalendarAdminView onVerDetalle={setDetailTarget} />
+                      : <CalendarView isAdmin={true} onVerDetalle={setDetailTarget} />
                     : isRecreador
-                      ? <CalendarRecreadorView solicitudes={solicitudes} userId={user?.id} onVerDetalle={setDetailTarget} onFinalizar={setFinalizarTarget} />
-                      : <CalendarView solicitudes={solicitudes} isAdmin={false} />
+                      ? <CalendarRecreadorView userId={user?.id} onVerDetalle={setDetailTarget} onFinalizar={setFinalizarTarget} />
+                      : <CalendarView isAdmin={false} onVerDetalle={setDetailTarget} />
                   }
                 </div>
               </div>
@@ -1002,7 +984,6 @@ export default function DashboardPage() {
       {estadoTarget && (
         <EstadoModal
           solicitud={estadoTarget}
-          solicitudes={solicitudes}
           onClose={() => setEstadoTarget(null)}
           onConfirm={handleEstadoChange}
         />

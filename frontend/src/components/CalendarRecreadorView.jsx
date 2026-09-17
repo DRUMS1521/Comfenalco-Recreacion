@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { formatHora } from '../utils/timeFormat'
 import { calcHours, getMondayOfDate as getMondayOf, toYMD, LIMITE_HORAS } from '../utils/hours'
+import useSolicitudesRango from '../hooks/useSolicitudesRango'
 
 const DIAS_SEMANA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 const MESES      = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
@@ -73,7 +74,7 @@ function EventCard({ sol, today, onClick, onFinalizar }) {
   )
 }
 
-export default function CalendarRecreadorView({ solicitudes, userId, onVerDetalle, onFinalizar }) {
+export default function CalendarRecreadorView({ userId, onVerDetalle, onFinalizar }) {
   const [weekStart, setWeekStart] = useState(() => getMondayOf(new Date()))
 
   const weekDays = Array.from({ length: 7 }, (_, i) => {
@@ -91,6 +92,8 @@ export default function CalendarRecreadorView({ solicitudes, userId, onVerDetall
   const goToday = () => setWeekStart(getMondayOf(new Date()))
 
   const weekDayStrings = weekDays.map(toYMD)
+  // Las asignaciones de la semana se piden al servidor (antes llegaban todas)
+  const { solicitudes, cargando } = useSolicitudesRango(weekDayStrings[0], weekDayStrings[6])
   const today = toYMD(new Date())
 
   // Mostrar programadas y finalizadas de la semana
@@ -125,6 +128,12 @@ export default function CalendarRecreadorView({ solicitudes, userId, onVerDetall
 
   return (
     <div className="space-y-4">
+      {cargando && (
+        <div className="flex items-center justify-center gap-2 py-3 text-xs text-ink-400">
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600" />
+          Cargando actividades…
+        </div>
+      )}
       {/* Alerta si hay tareas pendientes de finalizar */}
       {pendientesFinalizacion > 0 && (
         <div className="flex items-center gap-3 bg-amber-50 border-l-2 border-amber-600 rounded-md px-4 py-3">

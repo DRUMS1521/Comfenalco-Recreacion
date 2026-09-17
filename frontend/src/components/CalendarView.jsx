@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { formatHora } from '../utils/timeFormat'
+import { toYMD } from '../utils/hours'
+import useSolicitudesRango from '../hooks/useSolicitudesRango'
 
 const DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 const MESES = [
@@ -40,10 +42,15 @@ function EventChip({ evento, isAdmin, isSelected }) {
   )
 }
 
-export default function CalendarView({ solicitudes, isAdmin = false, onVerDetalle }) {
+export default function CalendarView({ isAdmin = false, onVerDetalle }) {
   const today = new Date()
   const [current, setCurrent] = useState({ year: today.getFullYear(), month: today.getMonth() })
   const [selected, setSelected] = useState(null)
+
+  // Solo el mes visible (antes se recibía la lista completa de solicitudes)
+  const desde = toYMD(new Date(current.year, current.month, 1))
+  const hasta = toYMD(new Date(current.year, current.month + 1, 0))
+  const { solicitudes, cargando } = useSolicitudesRango(desde, hasta)
 
   const programadas = solicitudes.filter((s) => s.estado === 'programado')
 
@@ -83,6 +90,12 @@ export default function CalendarView({ solicitudes, isAdmin = false, onVerDetall
 
   return (
     <div className="space-y-4">
+      {cargando && (
+        <div className="flex items-center justify-center gap-2 py-3 text-xs text-ink-400">
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600" />
+          Cargando actividades…
+        </div>
+      )}
       {/* Navegación */}
       <div className="flex items-center justify-between">
         <button onClick={prevMonth}
