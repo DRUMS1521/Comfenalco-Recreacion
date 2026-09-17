@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { formatHora } from '../utils/timeFormat'
 import { calcHours, getMondayOfDate as getMondayOf, toYMD, LIMITE_HORAS } from '../utils/hours'
 import useSolicitudesRango from '../hooks/useSolicitudesRango'
+import { SkeletonWeekGrid } from './ui/Skeleton'
 
 const DIAS_SEMANA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 const MESES      = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
@@ -128,12 +129,7 @@ export default function CalendarRecreadorView({ userId, onVerDetalle, onFinaliza
 
   return (
     <div className="space-y-4">
-      {cargando && (
-        <div className="flex items-center justify-center gap-2 py-3 text-xs text-ink-400">
-          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600" />
-          Cargando actividades…
-        </div>
-      )}
+      {cargando && <SkeletonWeekGrid rows={6} />}
       {/* Alerta si hay tareas pendientes de finalizar */}
       {pendientesFinalizacion > 0 && (
         <div className="flex items-center gap-3 bg-amber-50 border-l-2 border-amber-600 rounded-md px-4 py-3">
@@ -199,8 +195,10 @@ export default function CalendarRecreadorView({ userId, onVerDetalle, onFinaliza
         )}
       </div>
 
-      {/* Grilla de 7 días */}
-      <div className="grid grid-cols-7 gap-1.5">
+      {/* Grilla de 7 días: en pantallas estrechas se desplaza en horizontal para
+          que las tarjetas sigan siendo legibles (7 columnas en 390 px = 55 px) */}
+      <div className="overflow-x-auto scroll-area -mx-1 px-1">
+      <div className="grid grid-cols-7 gap-1.5 min-w-[620px]">
         {/* Cabeceras */}
         {weekDays.map((day, idx) => {
           const ymd   = toYMD(day)
@@ -254,6 +252,7 @@ export default function CalendarRecreadorView({ userId, onVerDetalle, onFinaliza
             </div>
           )
         })}
+      </div>
       </div>
 
       {misTareas.length === 0 && (

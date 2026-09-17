@@ -401,8 +401,8 @@ export default function StatsEmpresarial() {
 
       {/* Modal detalle */}
       {modalSol && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setModalSol(null)} />
+        <div className="modal-overlay">
+          <div className="absolute inset-0" onClick={() => setModalSol(null)} />
           <div className="relative bg-white rounded-md border border-ink-200 w-full max-w-md overflow-hidden">
             <div className="bg-ink-900 border-b-2 border-accent-500 px-6 py-5 text-white">
               <div className="flex items-start justify-between gap-3">

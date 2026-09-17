@@ -3,6 +3,7 @@ import api from '../services/api'
 import { formatHora } from '../utils/timeFormat'
 import { calcHours, getMondayOfDate as getMondayOf, toYMD } from '../utils/hours'
 import useSolicitudesRango from '../hooks/useSolicitudesRango'
+import { SkeletonWeekGrid } from './ui/Skeleton'
 
 const DIAS_SEMANA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 const DIAS_FULL   = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
@@ -112,12 +113,7 @@ export default function CalendarAdminView({ onVerDetalle }) {
 
   return (
     <div className="space-y-4">
-      {cargando && (
-        <div className="flex items-center justify-center gap-2 py-3 text-xs text-ink-400">
-          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600" />
-          Cargando actividades…
-        </div>
-      )}
+      {cargando && <SkeletonWeekGrid rows={6} />}
       {/* Navegación de semana */}
       <div className="flex items-center justify-between gap-2">
         <button onClick={prevWeek}

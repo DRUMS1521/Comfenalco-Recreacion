@@ -15,7 +15,7 @@ export default function HoraExtraDetailModal({ fecha, registros = [], onClose })
   const totalDia = registros.reduce((sum, r) => sum + r.horas, 0)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+    <div className="modal-overlay">
       <div className="bg-white rounded-md border border-ink-200 w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="bg-ink-900 border-b-2 border-accent-500 px-5 py-4 flex items-start justify-between gap-3 shrink-0">

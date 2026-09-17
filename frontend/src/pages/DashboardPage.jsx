@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react'
 import useAuth from '../hooks/useAuth'
 import Sidebar from '../components/Sidebar'
 import SolicitudModal from '../components/SolicitudModal'
@@ -8,18 +8,22 @@ import CalendarRecreadorView from '../components/CalendarRecreadorView'
 import EstadoModal from '../components/EstadoModal'
 import SolicitudDetailModal from '../components/SolicitudDetailModal'
 import FinalizarModal from '../components/FinalizarModal'
-import StatsRecreador from '../components/StatsRecreador'
-import StatsAdmin from '../components/StatsAdmin'
+import { SkeletonChart, SkeletonList } from '../components/ui/Skeleton'
 import EmpresasView from '../components/EmpresasView'
 import PromotorDashboard from '../components/PromotorDashboard'
 import UsersView from '../components/UsersView'
 import HorasExtraRecreadorView from '../components/HorasExtraRecreadorView'
 import HorasExtraAdminView from '../components/HorasExtraAdminView'
-import ViaticosView from '../components/ViaticosView'
 import api from '../services/api'
 import { notify } from '../utils/notify'
 import { formatHora } from '../utils/timeFormat'
 import WelcomeModal from '../components/WelcomeModal'
+
+// Diferidas: recharts pesa más que todo el resto de la app y solo se necesita al
+// abrir Estadísticas; Viáticos solo lo usa el jefe de recreación.
+const StatsRecreador = lazy(() => import('../components/StatsRecreador'))
+const StatsAdmin = lazy(() => import('../components/StatsAdmin'))
+const ViaticosView = lazy(() => import('../components/ViaticosView'))
 
 const ESTADO_CONFIG = {
   pendiente:       { label: 'Pendiente',    cls: 'border-yellow-500 text-yellow-800' },
@@ -68,7 +72,7 @@ function AdminSolicitudCard({ sol, onVerDetalle, onCambiarEstado }) {
       }`}>
       <button
         onClick={() => onVerDetalle(sol)}
-        className="flex-1 text-left px-4 sm:px-5 py-3.5 hover:bg-primary-50/30 transition flex items-start gap-3"
+        className="flex-1 text-left px-4 sm:px-5 py-3 hover:bg-primary-50/30 transition-colors duration-150 flex items-start gap-3"
       >
         {/* Dot de estado */}
         <div className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${
@@ -145,7 +149,7 @@ function AdminSolicitudCard({ sol, onVerDetalle, onCambiarEstado }) {
       <button
         onClick={() => onCambiarEstado(sol)}
         title="Cambiar estado"
-        className="px-3.5 flex items-center text-ink-300 hover:text-primary-500 hover:bg-primary-50 transition opacity-0 group-hover:opacity-100"
+        className="px-3.5 flex items-center text-ink-300 hover:text-primary-500 hover:bg-primary-50 transition-colors duration-150 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -162,7 +166,7 @@ function SolicitudCard({ sol, isAdmin, onVerDetalle, onCambiarEstado, onFinaliza
     <div className={`flex items-stretch divide-x divide-ink-100 ${sol.estado === 'eliminado' ? 'opacity-40' : ''}`}>
       <button
         onClick={() => onVerDetalle(sol)}
-        className="flex-1 text-left px-4 sm:px-5 py-3.5 hover:bg-primary-50/40 transition flex items-start gap-3"
+        className="flex-1 text-left px-4 sm:px-5 py-3 hover:bg-primary-50/40 transition-colors duration-150 flex items-start gap-3"
       >
         <div className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${
           sol.estado === 'pendiente'    ? 'bg-yellow-400' :
@@ -241,7 +245,11 @@ export default function DashboardPage() {
   const [searchDebounced, setSearchDebounced] = useState('')
   const [sortDir, setSortDir] = useState('asc')   // 'asc' | 'desc' por fecha_evento
   const [page, setPage] = useState(1)
-  const [dismissedHoy, setDismissedHoy] = useState(false)
+  // El descarte del aviso de hoy se recuerda durante la sesión (antes volvía a
+  // aparecer en cada recarga).
+  const [dismissedHoy, setDismissedHoy] = useState(
+    () => sessionStorage.getItem('hoyDismissed') === '1'
+  )
   // El backend oculta por defecto las solicitudes administrativas (ruido de la
   // migración del cronograma). Este interruptor las vuelve a mostrar.
   const [incluirAdmin, setIncluirAdmin] = useState(false)
@@ -493,8 +501,10 @@ export default function DashboardPage() {
         onNuevaSolicitud={() => setShowSolicitudModal(true)}
       />
 
-      <div className="flex-1 ml-16">
-        <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-5">
+      {/* min-w-0: sin esto el contenido no puede encogerse y la página
+          desbordaba a lo ancho en móvil (969-1216 px en una pantalla de 390) */}
+      <div className="flex-1 min-w-0 ml-16">
+        <main className="max-w-6xl 2xl:max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-5">
 
           {/* Header de página */}
           <div className="flex items-center justify-between">
@@ -532,14 +542,14 @@ export default function DashboardPage() {
                         {s.icon}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-2xl font-bold leading-none">
+                        <p className="text-xl sm:text-2xl font-bold leading-none">
                           {s.value}
                         </p>
-                        <p className="text-xs mt-0.5 truncate opacity-80">
+                        <p className="text-[11px] sm:text-xs mt-0.5 leading-tight opacity-80">
                           {s.label}
                         </p>
                         {s.total !== undefined && (
-                          <p className="text-[10px] mt-0.5 opacity-50">
+                          <p className="text-[10px] mt-0.5 opacity-50 leading-tight">
                             {s.total} en total
                           </p>
                         )}
@@ -570,7 +580,7 @@ export default function DashboardPage() {
 
           {/* Banner: Eventos de hoy (solo admin, tab lista) */}
           {isAdmin && tab === 'lista' && eventosHoy.length > 0 && !dismissedHoy && (
-            <div className="bg-ink-900 border-l-2 border-accent-500 rounded-md px-4 py-3 flex items-center gap-3">
+            <div className="view-enter bg-ink-900 border-l-2 border-accent-500 rounded-md px-4 py-2.5 flex items-center gap-3">
               <div className="w-8 h-8 bg-white/10 rounded-md flex items-center justify-center shrink-0">
                 <svg className="w-4 h-4 text-accent-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -583,8 +593,13 @@ export default function DashboardPage() {
                     ? '1 actividad programada para hoy'
                     : `${eventosHoy.length} actividades programadas para hoy`}
                 </p>
-                <p className="text-ink-300 text-xs mt-0.5">
-                  {eventosHoy.map((s) => s.empresa).join(' · ')}
+                {/* Solo las tres primeras empresas: con 27 actividades el listado
+                    completo ocupaba una pantalla entera en móvil. */}
+                <p className="text-ink-300 text-xs mt-0.5 truncate">
+                  {eventosHoy.slice(0, 3).map((s) => s.empresa).join(' · ')}
+                  {eventosHoy.length > 3 && (
+                    <span className="text-ink-400"> y {eventosHoy.length - 3} más</span>
+                  )}
                 </p>
               </div>
               <button
@@ -594,7 +609,7 @@ export default function DashboardPage() {
                 Ver
               </button>
               <button
-                onClick={() => setDismissedHoy(true)}
+                onClick={() => { setDismissedHoy(true); sessionStorage.setItem('hoyDismissed', '1') }}
                 className="text-ink-400 hover:text-white transition-colors p-1 rounded"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -615,9 +630,7 @@ export default function DashboardPage() {
                     <PromotorDashboard />
                   </div>
                 ) : loading ? (
-                  <div className="flex items-center justify-center py-16">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
-                  </div>
+                  <SkeletonList rows={6} />
                 ) : isAdmin ? (
                   /* ───── Vista Admin ───── */
                   <>
@@ -855,7 +868,7 @@ export default function DashboardPage() {
                             <p className="text-xs mt-1">Usa las flechas para navegar a otro día</p>
                           </div>
                         ) : (
-                          <div className="divide-y divide-ink-100 max-h-[420px] overflow-y-auto">
+                          <div className="divide-y divide-ink-100 max-h-[420px] overflow-y-auto scroll-area">
                             {tareasDelDia.map((sol) => (
                               <SolicitudCard
                                 key={sol.id}
@@ -891,7 +904,7 @@ export default function DashboardPage() {
                       </button>
                     </div>
                   ) : (
-                    <div className="max-h-[480px] overflow-y-auto divide-y divide-ink-100 scrollbar-thin">
+                    <div className="max-h-[480px] overflow-y-auto divide-y divide-ink-100 scroll-area">
                       {solicitudes.filter((s) => s.estado !== 'eliminado').map((sol) => (
                         <SolicitudCard
                           key={sol.id}
@@ -908,27 +921,33 @@ export default function DashboardPage() {
             )}
 
             {/* Tab: Empresas */}
-            {tab === 'empresas' && isAdmin && <EmpresasView />}
+            {tab === 'empresas' && isAdmin && <div className="view-enter"><EmpresasView /></div>}
 
             {/* Tab: Usuarios (super admin) */}
-            {tab === 'usuarios' && isSuperAdmin && <UsersView />}
+            {tab === 'usuarios' && isSuperAdmin && <div className="view-enter"><UsersView /></div>}
 
             {/* Tab: Viáticos (super admin) */}
-            {tab === 'viaticos' && isSuperAdmin && <ViaticosView />}
+            {tab === 'viaticos' && isSuperAdmin && (
+              <Suspense fallback={<div className="p-4 sm:p-6"><SkeletonList rows={6} /></div>}>
+                <ViaticosView />
+              </Suspense>
+            )}
 
             {/* Tab: Estadísticas */}
             {tab === 'estadisticas' && (
-              <div className="p-4 sm:p-6">
-                {isAdmin
-                  ? <StatsAdmin recreadores={recreadores} />
-                  : <StatsRecreador />
-                }
+              <div className="p-4 sm:p-6 view-enter">
+                <Suspense fallback={<SkeletonChart className="h-80" />}>
+                  {isAdmin
+                    ? <StatsAdmin recreadores={recreadores} />
+                    : <StatsRecreador />
+                  }
+                </Suspense>
               </div>
             )}
 
             {/* Tab: Horas Extras y Recargos */}
             {tab === 'horas-extra' && (
-              <div className="p-4 sm:p-6">
+              <div className="p-4 sm:p-6 view-enter">
                 {isAdmin
                   ? <HorasExtraAdminView />
                   : <HorasExtraRecreadorView />

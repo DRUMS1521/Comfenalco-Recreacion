@@ -3,6 +3,7 @@ import api from '../services/api'
 import { notify } from '../utils/notify'
 import { getMondayOfDate, toYMD } from '../utils/hours'
 import HoraExtraManualModal from './HoraExtraManualModal'
+import { SkeletonTable } from './ui/Skeleton'
 
 const MESES_FULL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 
@@ -100,9 +101,7 @@ export default function HorasExtraAdminView() {
           <h3 className="font-bold text-ink-700 text-sm">Horas por recreador (solo informativo)</h3>
         </div>
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-primary-700" />
-          </div>
+          <SkeletonTable rows={5} cols={6} />
         ) : resumen.length === 0 ? (
           <p className="text-sm text-ink-400 text-center py-10">No hay recreadores activos</p>
         ) : (

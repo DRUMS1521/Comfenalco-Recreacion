@@ -41,7 +41,7 @@ export default function EmpresaModal({ onClose, onSuccess }) {
     `field-input ${errors[field] ? 'border-red-500 focus:border-red-600 focus:ring-red-600' : ''}`
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+    <div className="modal-overlay">
       <div className="bg-white rounded-md border border-ink-200 w-full max-w-md overflow-hidden">
 
         {/* Header */}

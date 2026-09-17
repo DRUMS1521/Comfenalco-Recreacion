@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import api from '../services/api'
 import ViaticoDetailModal from './ViaticoDetailModal'
+import { SkeletonTable } from './ui/Skeleton'
 
 const PER_PAGE = 10
 
@@ -131,9 +132,7 @@ export default function ViaticosView() {
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center py-16">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
-        </div>
+        <SkeletonTable rows={6} cols={5} />
       ) : error ? (
         <div className="text-center py-16 px-4">
           <div className="w-14 h-14 border border-red-200 bg-red-50 rounded-md flex items-center justify-center mx-auto mb-4">

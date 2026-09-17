@@ -112,7 +112,7 @@ export default function SolicitudModal({ onClose, onSuccess }) {
   const today = new Date().toISOString().split('T')[0]
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
+    <div className="modal-overlay items-end sm:items-center p-0 sm:p-4">
       <div className="bg-white rounded-t-md sm:rounded-md border border-ink-200 w-full sm:max-w-2xl max-h-[95vh] sm:max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="bg-ink-900 border-b-2 border-accent-500 rounded-t-md px-5 py-4 flex items-center justify-between shrink-0">

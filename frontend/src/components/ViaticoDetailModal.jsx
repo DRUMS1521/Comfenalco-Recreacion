@@ -23,7 +23,7 @@ function Campo({ label, value }) {
 export default function ViaticoDetailModal({ viatico, onClose }) {
   if (!viatico) return null
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+    <div className="modal-overlay">
       <div className="bg-white rounded-md border border-ink-200 w-full max-w-md overflow-hidden max-h-[90vh] flex flex-col">
         <div className="bg-ink-900 border-b-2 border-accent-500 px-5 py-4 flex items-center justify-between shrink-0">
           <div>

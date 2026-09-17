@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { formatHora } from '../utils/timeFormat'
 import { toYMD } from '../utils/hours'
 import useSolicitudesRango from '../hooks/useSolicitudesRango'
+import { SkeletonWeekGrid } from './ui/Skeleton'
 
 const DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 const MESES = [
@@ -90,12 +91,7 @@ export default function CalendarView({ isAdmin = false, onVerDetalle }) {
 
   return (
     <div className="space-y-4">
-      {cargando && (
-        <div className="flex items-center justify-center gap-2 py-3 text-xs text-ink-400">
-          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600" />
-          Cargando actividades…
-        </div>
-      )}
+      {cargando && <SkeletonWeekGrid rows={5} />}
       {/* Navegación */}
       <div className="flex items-center justify-between">
         <button onClick={prevMonth}
