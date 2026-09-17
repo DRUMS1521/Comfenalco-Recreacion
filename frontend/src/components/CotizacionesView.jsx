@@ -528,6 +528,110 @@ function CotizacionEditor({ cotizacion, onClose, onSaved }) {
   )
 }
 
+/* ── Envío por correo ── */
+function EnviarCotizacionModal({ cotizacion, onClose, onEnviado }) {
+  const correoEnTexto = (cotizacion.telefono_email || '').match(/[\w.+-]+@[\w-]+\.[\w.]+/)
+  const [form, setForm] = useState({
+    destinatario: correoEnTexto ? correoEnTexto[0] : '',
+    copia: '',
+    asunto: `Cotización ${cotizacion.numero} · Comfenalco Tolima`,
+    mensaje: `Adjuntamos la cotización ${cotizacion.numero} para ${cotizacion.cliente}. Quedamos atentos a cualquier ajuste.`,
+  })
+  const [enviando, setEnviando] = useState(false)
+  const cambiar = (campo, valor) => setForm((f) => ({ ...f, [campo]: valor }))
+
+  useEffect(() => {
+    const alPulsar = (e) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', alPulsar)
+    return () => window.removeEventListener('keydown', alPulsar)
+  }, [onClose])
+
+  const enviar = async () => {
+    if (!form.destinatario.trim()) return notify.error('Indica el correo del destinatario')
+    setEnviando(true)
+    try {
+      const payload = { destinatario: form.destinatario.trim() }
+      if (form.copia.trim()) payload.copia = form.copia.trim()
+      if (form.asunto.trim()) payload.asunto = form.asunto.trim()
+      if (form.mensaje.trim()) payload.mensaje = form.mensaje.trim()
+      const { data } = await api.post(`/cotizaciones/${cotizacion.id}/enviar`, payload)
+      notify.success(`Cotización ${data.numero} enviada a ${data.destinatario}`)
+      onEnviado()
+    } catch (err) {
+      notify.error(err.response?.data?.detail || 'No se pudo enviar la cotización')
+    } finally {
+      setEnviando(false)
+    }
+  }
+
+  return createPortal(
+    <div className="modal-overlay">
+      <div className="relative bg-white rounded-md border border-ink-200 shadow-xl
+        w-full max-w-lg max-h-[92vh] flex flex-col overflow-hidden">
+        <header className="bg-ink-900 border-b-2 border-accent-500 px-4 sm:px-5 py-3 flex items-center justify-between gap-3 shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-md bg-white/10 flex items-center justify-center shrink-0 text-accent-400">
+              <Icono d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-white font-bold text-sm">Enviar cotización por correo</h3>
+              <p className="text-ink-300 text-[11px] truncate">
+                {cotizacion.numero} · se adjunta el PDF membretado
+              </p>
+            </div>
+          </div>
+          <button onClick={onClose} title="Cerrar"
+            className="text-ink-300 hover:text-white p-2 -m-1 rounded-md hover:bg-white/10 transition-colors">
+            <Icono d="M6 18L18 6M6 6l12 12" className="w-5 h-5" />
+          </button>
+        </header>
+
+        <div className="flex-1 min-h-0 overflow-y-auto scroll-area p-4 sm:p-5 space-y-3">
+          <div>
+            <label className="field-label">Para *</label>
+            <input type="email" value={form.destinatario}
+              onChange={(e) => cambiar('destinatario', e.target.value)}
+              placeholder="correo@empresa.com" className="field-input py-2 text-sm" />
+            {!correoEnTexto && (cotizacion.telefono_email || cotizacion.contacto) && (
+              <p className="text-[11px] text-ink-400 mt-1">
+                En la cotización figura «{cotizacion.telefono_email || cotizacion.contacto}», que no es un correo.
+              </p>
+            )}
+          </div>
+          <div>
+            <label className="field-label">Copia (opcional)</label>
+            <input type="email" value={form.copia}
+              onChange={(e) => cambiar('copia', e.target.value)}
+              placeholder="copia@comfenalcotolima.com" className="field-input py-2 text-sm" />
+          </div>
+          <div>
+            <label className="field-label">Asunto</label>
+            <input value={form.asunto} onChange={(e) => cambiar('asunto', e.target.value)}
+              className="field-input py-2 text-sm" />
+          </div>
+          <div>
+            <label className="field-label">Mensaje</label>
+            <textarea rows="3" value={form.mensaje} onChange={(e) => cambiar('mensaje', e.target.value)}
+              className="field-input py-2 text-sm" />
+          </div>
+          <p className="text-[11px] text-ink-400 bg-ink-50 border-l-2 border-ink-300 px-2 py-1.5">
+            Al enviarla, si estaba en borrador pasa a <b>Enviada</b>. El cliente recibe el
+            detalle en el cuerpo y el PDF con el membrete adjunto.
+          </p>
+        </div>
+
+        <footer className="shrink-0 border-t border-ink-200 px-4 sm:px-5 py-3 flex flex-col sm:flex-row gap-2 sm:gap-3 sm:justify-end">
+          <button onClick={onClose} className="btn-secondary w-full sm:w-auto">Cancelar</button>
+          <button onClick={enviar} disabled={enviando} className="btn-primary w-full sm:w-auto">
+            {enviando ? 'Enviando…' : 'Enviar cotización'}
+          </button>
+        </footer>
+      </div>
+    </div>,
+    document.body
+  )
+}
+
 /* ── Vista principal ── */
 export default function CotizacionesView() {
   const [pagina, setPagina] = useState({ items: [], total: 0, page: 1, pages: 1 })
@@ -539,6 +643,7 @@ export default function CotizacionesView() {
   const [cargando, setCargando] = useState(true)
   const [editor, setEditor] = useState(null)
   const [detalle, setDetalle] = useState(null)
+  const [paraEnviar, setParaEnviar] = useState(null)
 
   const fetchResumen = useCallback(async () => {
     try {
@@ -580,6 +685,23 @@ export default function CotizacionesView() {
       refrescar()
     } catch (err) {
       notify.error(err.response?.data?.detail || 'No se pudo cambiar el estado')
+    }
+  }
+
+  const descargarPdf = async (cot) => {
+    try {
+      const res = await api.get(`/cotizaciones/${cot.id}/pdf`, { responseType: 'blob' })
+      const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
+      const enlace = document.createElement('a')
+      enlace.href = url
+      enlace.download = `${cot.numero}.pdf`
+      document.body.appendChild(enlace)
+      enlace.click()
+      enlace.remove()
+      URL.revokeObjectURL(url)
+      notify.success(`PDF de ${cot.numero} descargado`)
+    } catch (err) {
+      notify.error(err.response?.data?.detail || 'No se pudo generar el PDF')
     }
   }
 
@@ -795,10 +917,16 @@ export default function CotizacionesView() {
                   {detalle.numero} · {detalle.proveedor_nombre} · {detalle.creado_por_nombre}
                 </p>
               </div>
-              <button onClick={() => setDetalle(null)} title="Cerrar"
-                className="text-ink-300 hover:text-white p-2 -m-1 rounded-md hover:bg-white/10 transition-colors shrink-0">
-                <Icono d="M6 18L18 6M6 6l12 12" className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-1 shrink-0">
+                <button onClick={() => { setEditor(detalle); setDetalle(null) }} title="Editar"
+                  className="text-ink-300 hover:text-white p-2 rounded-md hover:bg-white/10 transition-colors">
+                  <Icono d={ICONOS.borrador} className="w-5 h-5" />
+                </button>
+                <button onClick={() => setDetalle(null)} title="Cerrar"
+                  className="text-ink-300 hover:text-white p-2 -m-1 rounded-md hover:bg-white/10 transition-colors">
+                  <Icono d="M6 18L18 6M6 6l12 12" className="w-5 h-5" />
+                </button>
+              </div>
             </header>
 
             <div className="flex-1 min-h-0 overflow-y-auto scroll-area p-4 sm:p-5 space-y-4">
@@ -865,17 +993,33 @@ export default function CotizacionesView() {
             </div>
 
             <footer className="relative z-10 shrink-0 border-t border-ink-200 px-4 sm:px-5 py-3
-              flex items-center gap-3 shadow-[0_-8px_16px_-12px_rgba(0,0,0,0.35)]">
+              flex flex-col sm:flex-row sm:items-center gap-3 shadow-[0_-8px_16px_-12px_rgba(0,0,0,0.35)]">
               <div className="flex-1">
                 <p className="text-[11px] font-bold text-ink-400 uppercase tracking-wider">Total</p>
                 <p className="text-xl font-bold text-ink-900 leading-none">{money(detalle.total)}</p>
               </div>
-              <button onClick={() => setDetalle(null)} className="btn-secondary">Cerrar</button>
-              <button onClick={() => { setEditor(detalle); setDetalle(null) }} className="btn-primary">Editar</button>
+              <div className="flex gap-2">
+                <button onClick={() => descargarPdf(detalle)} className="btn-secondary flex-1 sm:flex-none">
+                  <Icono d="M12 10v6m0 0l-3-3m3 3l3-3M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  PDF
+                </button>
+                <button onClick={() => { setParaEnviar(detalle); setDetalle(null) }} className="btn-primary flex-1 sm:flex-none">
+                  <Icono d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  Enviar por correo
+                </button>
+              </div>
             </footer>
           </div>
         </div>,
         document.body
+      )}
+
+      {paraEnviar && (
+        <EnviarCotizacionModal
+          cotizacion={paraEnviar}
+          onClose={() => setParaEnviar(null)}
+          onEnviado={() => { setParaEnviar(null); setDetalle(null); refrescar() }}
+        />
       )}
 
       {editor && (

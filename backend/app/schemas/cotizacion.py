@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, EmailStr, validator
 
 ESTADOS_COTIZACION = ["borrador", "enviada", "aprobada", "rechazada", "anulada"]
 
@@ -230,6 +230,22 @@ class CotizacionEstadoUpdate(BaseModel):
         if v not in ESTADOS_COTIZACION:
             raise ValueError(f"Estado inválido. Opciones: {ESTADOS_COTIZACION}")
         return v
+
+
+class EnviarCotizacionRequest(BaseModel):
+    """Datos del envío por correo de una cotización."""
+    destinatario: EmailStr
+    asunto: Optional[str] = None
+    mensaje: Optional[str] = None
+    copia: Optional[EmailStr] = None
+
+
+class EnvioCotizacionResponse(BaseModel):
+    ok: bool
+    destinatario: str
+    numero: str
+    estado: str
+    detalle: Optional[str] = None
 
 
 class CotizacionResponse(BaseModel):

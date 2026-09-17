@@ -10,7 +10,7 @@ Permisos:
 """
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -18,6 +18,8 @@ from app.models.cotizacion import CategoriaCotizacion, Producto, Proveedor
 from app.models.user import User
 from app.schemas.cotizacion import (
     CategoriaCreate,
+    EnviarCotizacionRequest,
+    EnvioCotizacionResponse,
     CategoriaResponse,
     CategoriaUpdate,
     CatalogoResponse,
@@ -36,6 +38,8 @@ from app.schemas.cotizacion import (
 )
 from app.services.auth_service import get_current_user
 from app.services import cotizacion_service as svc
+from app.services.cotizacion_pdf import generar_pdf
+from app.services.email_service import enviar_correo, plantilla_cotizacion, _hay_smtp
 
 router = APIRouter(prefix="/cotizaciones", tags=["cotizaciones"])
 catalogo_router = APIRouter(prefix="/catalogo", tags=["catalogo"])
@@ -295,6 +299,85 @@ def cambiar_estado(
     if not (current_user.is_admin or current_user.is_cotizador) and cot.creado_por_id != current_user.id:
         raise HTTPException(status_code=403, detail="No autorizado")
     return svc.cambiar_estado(db, cot, data.estado)
+
+
+def _autorizado(cot, user: User) -> bool:
+    return bool(user.is_admin or user.is_cotizador or cot.creado_por_id == user.id)
+
+
+@router.get("/{cotizacion_id}/pdf")
+def descargar_pdf(
+    cotizacion_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(puede_cotizar),
+):
+    """PDF de la cotización con el membrete institucional."""
+    cot = svc.obtener_cotizacion(db, cotizacion_id)
+    if not cot:
+        raise HTTPException(status_code=404, detail="Cotización no encontrada")
+    if not _autorizado(cot, current_user):
+        raise HTTPException(status_code=403, detail="No autorizado")
+
+    datos = svc._enrich(db, cot)
+    pdf = generar_pdf(datos)
+    return Response(
+        content=pdf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{datos["numero"]}.pdf"'},
+    )
+
+
+@router.post("/{cotizacion_id}/enviar", response_model=EnvioCotizacionResponse)
+def enviar_por_correo(
+    cotizacion_id: int,
+    data: EnviarCotizacionRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(puede_cotizar),
+):
+    """Envía la cotización por correo con el PDF adjunto.
+
+    Si la cotización estaba en borrador pasa a "enviada".
+    """
+    cot = svc.obtener_cotizacion(db, cotizacion_id)
+    if not cot:
+        raise HTTPException(status_code=404, detail="Cotización no encontrada")
+    if not _autorizado(cot, current_user):
+        raise HTTPException(status_code=403, detail="No autorizado")
+    if not _hay_smtp():
+        raise HTTPException(
+            status_code=503,
+            detail="El correo no está configurado en el servidor (SMTP_USER / SMTP_PASSWORD).",
+        )
+
+    datos = svc._enrich(db, cot)
+    asunto = data.asunto or f"Cotización {datos['numero']} · Comfenalco Tolima"
+    html = plantilla_cotizacion(datos, data.mensaje or "")
+    adjunto = (f"{datos['numero']}.pdf", generar_pdf(datos), "application/pdf")
+
+    try:
+        enviado = enviar_correo(
+            destinatario=str(data.destinatario),
+            asunto=asunto,
+            html=html,
+            adjuntos=[adjunto],
+            copia=str(data.copia) if data.copia else None,
+        )
+    except Exception as e:  # SMTP caído, credenciales vencidas, etc.
+        raise HTTPException(status_code=502, detail=f"No se pudo enviar el correo: {e}")
+
+    if not enviado:
+        raise HTTPException(status_code=503, detail="El correo no está configurado en el servidor.")
+
+    if cot.estado == "borrador":
+        cot.estado = "enviada"
+        db.commit()
+        db.refresh(cot)
+
+    return {
+        "ok": True, "destinatario": str(data.destinatario), "numero": cot.numero,
+        "estado": cot.estado,
+        "detalle": f"Cotización enviada con el PDF adjunto a {data.destinatario}",
+    }
 
 
 @router.delete("/{cotizacion_id}", status_code=status.HTTP_204_NO_CONTENT)
