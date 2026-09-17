@@ -195,11 +195,11 @@ export default function ViaticosView() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between px-5 py-3 border-t border-ink-100">
               <p className="text-xs text-ink-400">Página {page} de {totalPages}</p>
-              <div className="flex gap-1">
+              <div className="flex flex-wrap justify-center gap-1">
                 <button
                   onClick={() => setPage(p => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="px-3 py-1.5 text-xs rounded-md border border-ink-200 text-ink-500
+                  className="px-3 py-2 sm:py-1.5 text-xs rounded-md border border-ink-200 text-ink-500
                     hover:bg-ink-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   Anterior
@@ -208,7 +208,7 @@ export default function ViaticosView() {
                   <button
                     key={p}
                     onClick={() => setPage(p)}
-                    className={`w-8 h-8 text-xs rounded-md transition-colors font-semibold ${
+                    className={`w-10 h-10 sm:w-8 sm:h-8 text-xs rounded-md transition-colors font-semibold ${
                       p === page
                         ? 'bg-primary-800 text-white'
                         : 'border border-ink-200 text-ink-500 hover:bg-ink-100'
@@ -220,7 +220,7 @@ export default function ViaticosView() {
                 <button
                   onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
-                  className="px-3 py-1.5 text-xs rounded-md border border-ink-200 text-ink-500
+                  className="px-3 py-2 sm:py-1.5 text-xs rounded-md border border-ink-200 text-ink-500
                     hover:bg-ink-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   Siguiente

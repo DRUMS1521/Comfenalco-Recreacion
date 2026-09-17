@@ -120,7 +120,7 @@ export default function SolicitudModal({ onClose, onSuccess }) {
             <h2 className="text-white font-bold text-base sm:text-lg">Solicitar Servicio de Recreación</h2>
             <p className="text-ink-300 text-xs sm:text-sm">Complete todos los campos requeridos</p>
           </div>
-          <button onClick={onClose} className="text-ink-300 hover:text-white p-1 rounded-md hover:bg-white/10 transition-colors">
+          <button onClick={onClose} className="text-ink-300 hover:text-white p-2 sm:p-1 -m-1 rounded-md hover:bg-white/10 transition-colors">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>

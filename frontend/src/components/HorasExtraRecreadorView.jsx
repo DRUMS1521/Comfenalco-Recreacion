@@ -113,7 +113,7 @@ export default function HorasExtraRecreadorView() {
       </div>
 
       {/* Totales por categoría */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-4 gap-3 [&>*]:min-w-0">
         {CATEGORIAS.map((c) => (
           <div key={c.key} className="card-corp p-4 flex items-center gap-3">
             <span className={`w-2 h-8 rounded-sm shrink-0 ${c.dot}`} />

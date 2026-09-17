@@ -70,14 +70,14 @@ export default function HorasExtraAdminView() {
   return (
     <div className="space-y-4">
       {/* Navegación de semana */}
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-1 sm:gap-2 flex-wrap min-w-0">
           <button onClick={prevWeek} className="p-2 rounded-md hover:bg-ink-100 transition-colors text-ink-600">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <span className="text-sm font-semibold text-ink-800 min-w-[200px]">{weekLabel}</span>
+          <span className="text-sm font-semibold text-ink-800 min-w-0 sm:min-w-[200px]">{weekLabel}</span>
           <button onClick={nextWeek} className="p-2 rounded-md hover:bg-ink-100 transition-colors text-ink-600">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -87,7 +87,7 @@ export default function HorasExtraAdminView() {
             Esta semana
           </button>
         </div>
-        <button onClick={() => setModalRegistro(null)} className="btn-primary btn-sm">
+        <button onClick={() => setModalRegistro(null)} className="btn-primary btn-sm w-full sm:w-auto justify-center">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>

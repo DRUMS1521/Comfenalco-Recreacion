@@ -31,14 +31,14 @@ const ESTADO_LABELS_ES = {
 
 function KpiCard({ label, value, sub, colorClass, icon }) {
   return (
-    <div className={`card-corp border-l-2 p-5 flex items-start gap-4 ${colorClass}`}>
-      <div className="w-11 h-11 rounded-md border border-ink-200 flex items-center justify-center shrink-0">
+    <div className={`card-corp border-l-2 p-4 sm:p-5 min-w-0 flex items-start gap-3 sm:gap-4 ${colorClass}`}>
+      <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-md border border-ink-200 flex items-center justify-center shrink-0">
         {icon}
       </div>
-      <div>
-        <p className="text-2xl font-bold text-ink-800 leading-none">{value}</p>
-        <p className="text-sm font-medium text-ink-600 mt-0.5">{label}</p>
-        {sub && <p className="text-xs text-ink-400 mt-0.5">{sub}</p>}
+      <div className="min-w-0">
+        <p className="text-xl sm:text-2xl font-bold text-ink-800 leading-none">{value}</p>
+        <p className="text-xs sm:text-sm font-medium text-ink-600 mt-0.5 leading-tight">{label}</p>
+        {sub && <p className="text-xs text-ink-400 mt-0.5 leading-tight">{sub}</p>}
       </div>
     </div>
   )
@@ -144,7 +144,7 @@ export default function StatsEmpresarial() {
     <div className="space-y-6">
 
       {/* Botones de estado filtrables */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-3 gap-3 [&>*]:min-w-0">
         {ESTADO_BTNS.map(({ estado, label, dot, activeCls }) => {
           const count = data?.por_estado?.[estado] ?? 0
           const activo = filtroEstado === estado
@@ -271,7 +271,7 @@ export default function StatsEmpresarial() {
               <p className="text-xs text-ink-400">Resumen según filtros aplicados</p>
             </div>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-4 gap-3 [&>*]:min-w-0">
             <div className="bg-ink-50 rounded-md p-3 text-center">
               <p className="text-xl font-bold text-ink-800">{resumenEmpresa.total}</p>
               <p className="text-xs text-ink-500 mt-0.5">Total actividades</p>

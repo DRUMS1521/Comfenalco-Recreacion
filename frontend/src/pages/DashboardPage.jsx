@@ -452,6 +452,7 @@ export default function DashboardPage() {
     {
       estado: 'finalizado',
       label: 'Finalizadas esta semana',
+      labelCorto: 'Finalizadas',
       value: resumen.finalizadas_semana || 0,
       total: conteo('finalizado'),
       inactiveCls: 'bg-white border-ink-200 text-ink-600 hover:border-primary-700',
@@ -503,7 +504,7 @@ export default function DashboardPage() {
 
       {/* min-w-0: sin esto el contenido no puede encogerse y la página
           desbordaba a lo ancho en móvil (969-1216 px en una pantalla de 390) */}
-      <div className="flex-1 min-w-0 ml-16">
+      <div className="flex-1 min-w-0 ml-0 pt-14 lg:ml-16 lg:pt-0">
         <main className="max-w-6xl 2xl:max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-5">
 
           {/* Header de página */}
@@ -538,7 +539,7 @@ export default function DashboardPage() {
                         transition-colors duration-150
                         ${activo ? s.activeCls : s.inactiveCls}`}
                     >
-                      <div className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 ${s.iconBgInactive}`}>
+                      <div className={`hidden sm:flex w-8 h-8 rounded-md items-center justify-center shrink-0 ${s.iconBgInactive}`}>
                         {s.icon}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -546,7 +547,8 @@ export default function DashboardPage() {
                           {s.value}
                         </p>
                         <p className="text-[11px] sm:text-xs mt-0.5 leading-tight opacity-80">
-                          {s.label}
+                          <span className="sm:hidden">{s.labelCorto || s.label}</span>
+                          <span className="hidden sm:inline">{s.label}</span>
                         </p>
                         {s.total !== undefined && (
                           <p className="text-[10px] mt-0.5 opacity-50 leading-tight">
@@ -581,7 +583,7 @@ export default function DashboardPage() {
           {/* Banner: Eventos de hoy (solo admin, tab lista) */}
           {isAdmin && tab === 'lista' && eventosHoy.length > 0 && !dismissedHoy && (
             <div className="view-enter bg-ink-900 border-l-2 border-accent-500 rounded-md px-4 py-2.5 flex items-center gap-3">
-              <div className="w-8 h-8 bg-white/10 rounded-md flex items-center justify-center shrink-0">
+              <div className="hidden sm:flex w-8 h-8 bg-white/10 rounded-md items-center justify-center shrink-0">
                 <svg className="w-4 h-4 text-accent-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                     d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -604,13 +606,13 @@ export default function DashboardPage() {
               </div>
               <button
                 onClick={() => setFiltroEstado('programado')}
-                className="shrink-0 text-xs font-semibold uppercase tracking-wider text-ink-900 bg-accent-500 hover:bg-accent-400 px-3 py-1.5 rounded-md transition-colors"
+                className="shrink-0 text-xs font-semibold uppercase tracking-wider text-ink-900 bg-accent-500 hover:bg-accent-400 px-3.5 py-2 rounded-md transition-colors"
               >
                 Ver
               </button>
               <button
                 onClick={() => { setDismissedHoy(true); sessionStorage.setItem('hoyDismissed', '1') }}
-                className="text-ink-400 hover:text-white transition-colors p-1 rounded"
+                className="text-ink-400 hover:text-white transition-colors p-2.5 sm:p-1 rounded"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -648,7 +650,7 @@ export default function DashboardPage() {
                           value={search}
                           onChange={(e) => setSearch(e.target.value)}
                           placeholder="Buscar empresa, ciudad, servicio..."
-                          className="field-input pl-8 py-2 text-xs"
+                          className="field-input pl-8 py-2.5 sm:py-2 text-xs"
                         />
                         {search && (
                           <button onClick={() => setSearch('')}
@@ -679,14 +681,14 @@ export default function DashboardPage() {
                       {/* Interruptor de administrativas (ocultas por defecto) */}
                       {resumen.administrativas > 0 && (
                         <label
-                          className="flex items-center gap-1.5 text-xs text-ink-500 shrink-0 cursor-pointer select-none"
+                          className="flex items-center gap-2 text-xs text-ink-500 shrink-0 cursor-pointer select-none py-2 sm:py-0"
                           title="Las tareas administrativas del cronograma migrado se ocultan por defecto"
                         >
                           <input
                             type="checkbox"
                             checked={incluirAdmin}
                             onChange={(e) => setIncluirAdmin(e.target.checked)}
-                            className="accent-primary-800"
+                            className="accent-primary-800 w-4 h-4 shrink-0"
                           />
                           Incluir administrativas
                           <span className="text-ink-400">({resumen.administrativas})</span>
@@ -746,15 +748,15 @@ export default function DashboardPage() {
 
                         {/* Paginación */}
                         {totalPages > 1 && (
-                          <div className="flex items-center justify-between px-5 py-3 border-t border-ink-100">
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-4 sm:px-5 py-3 border-t border-ink-100">
                             <span className="text-xs text-ink-400">
                               Página {page} de {totalPages}
                             </span>
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center justify-center gap-1 flex-wrap">
                               <button
                                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                                 disabled={page === 1}
-                                className="p-1.5 rounded-md text-ink-400 hover:text-ink-800 hover:bg-ink-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                className="p-2.5 sm:p-1.5 rounded-md text-ink-400 hover:text-ink-800 hover:bg-ink-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -772,7 +774,7 @@ export default function DashboardPage() {
                                   <button
                                     key={p}
                                     onClick={() => setPage(p)}
-                                    className={`w-7 h-7 rounded-md text-xs font-semibold transition-colors ${
+                                    className={`w-10 h-10 sm:w-7 sm:h-7 rounded-md text-xs font-semibold transition-colors ${
                                       p === page
                                         ? 'bg-primary-800 text-white'
                                         : 'text-ink-500 hover:bg-ink-100'
@@ -785,7 +787,7 @@ export default function DashboardPage() {
                               <button
                                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                                 disabled={page === totalPages}
-                                className="p-1.5 rounded-md text-ink-400 hover:text-ink-800 hover:bg-ink-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                className="p-2.5 sm:p-1.5 rounded-md text-ink-400 hover:text-ink-800 hover:bg-ink-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

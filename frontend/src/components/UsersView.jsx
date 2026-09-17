@@ -218,7 +218,7 @@ export default function UsersView() {
             return (
               <div
                 key={u.id}
-                className={`flex items-center gap-3 px-5 py-3.5 hover:bg-ink-50 transition-colors group ${
+                className={`flex items-center gap-3 px-4 sm:px-5 py-3.5 hover:bg-ink-50 transition-colors group ${
                   !u.is_active ? 'opacity-50' : ''
                 }`}
               >
@@ -240,7 +240,7 @@ export default function UsersView() {
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-3 mt-0.5">
+                  <div className="flex items-center gap-x-3 gap-y-0.5 mt-0.5 flex-wrap">
                     <span className="text-xs text-ink-400 flex items-center gap-1">
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -248,18 +248,18 @@ export default function UsersView() {
                       </svg>
                       {u.username}
                     </span>
-                    <span className="text-xs text-ink-400 flex items-center gap-1">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <span className="text-xs text-ink-400 flex items-center gap-1 min-w-0">
+                      <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                           d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                       </svg>
-                      {u.email}
+                      <span className="truncate">{u.email}</span>
                     </span>
                   </div>
                 </div>
 
                 {/* Acciones */}
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                <div className="flex items-center gap-1 shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 transition-opacity">
                   {/* Editar */}
                   <button
                     onClick={() => setModalUser(u)}

@@ -72,11 +72,30 @@ const NAV_ICONS = {
 export default function Sidebar({ tab, setTab, isAdmin, isRecreador, isPromotor, isSuperAdmin, badgeCount = 0, onNuevaSolicitud }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  // En móvil/tablet la navegación es una barra superior + cajón lateral: el rail
+  // de iconos de escritorio (64 px, etiquetas al hover) no es usable en táctil.
+  const [abierto, setAbierto] = useState(false)
 
   const handleLogout = () => {
     logout()
     navigate('/login')
   }
+
+  const irA = (key) => { setTab(key); setAbierto(false) }
+  const nuevaSolicitud = () => { setAbierto(false); onNuevaSolicitud?.() }
+
+  // Bloquea el scroll del fondo y cierra con Escape mientras el cajón está abierto
+  useEffect(() => {
+    if (!abierto) return
+    const previo = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const alPulsar = (e) => { if (e.key === 'Escape') setAbierto(false) }
+    window.addEventListener('keydown', alPulsar)
+    return () => {
+      document.body.style.overflow = previo
+      window.removeEventListener('keydown', alPulsar)
+    }
+  }, [abierto])
 
   const navItems = isPromotor
     ? [{ key: 'lista', label: 'Mis Solicitudes' }]
@@ -92,26 +111,62 @@ export default function Sidebar({ tab, setTab, isAdmin, isRecreador, isPromotor,
       ]
 
   return (
-    /* El panel mide siempre 240 px y lo que se anima es un `clip-path`: no hay
-       ninguna animación de `width`, así que el navegador no recalcula el layout
-       en cada frame (antes `transition-[width]` obligaba a reflow continuo).
-       El recorte también limita los clics: con el panel plegado, la zona central
-       de la página sigue siendo clicable y no hay botones invisibles encima. */
+    <>
+    {/* Barra superior solo en móvil/tablet (en escritorio manda el rail lateral) */}
+    <header className="lg:hidden fixed top-0 inset-x-0 z-40 h-14 bg-ink-900 text-white
+      flex items-center gap-2 px-2 border-b border-white/10">
+      <button
+        onClick={() => setAbierto(true)}
+        aria-label="Abrir menú de navegación"
+        aria-expanded={abierto}
+        className="w-11 h-11 flex items-center justify-center rounded-md text-ink-200
+          hover:bg-white/10 hover:text-white transition-colors
+          focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
+      >
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+      <div className="flex items-center gap-2 min-w-0 flex-1">
+        <img src={logo} alt="" className="w-7 h-7 bg-white rounded p-0.5 shrink-0" />
+        <p className="font-bold text-sm truncate">Comfenalco</p>
+      </div>
+      <div className="w-9 h-9 rounded-full bg-primary-800 flex items-center justify-center shrink-0
+        text-white font-bold text-xs ring-1 ring-accent-500/40">
+        {getInitials(user?.full_name || user?.username)}
+      </div>
+    </header>
+
+    {/* Fondo del cajón (solo móvil) */}
+    {abierto && (
+      <div
+        onClick={() => setAbierto(false)}
+        aria-hidden="true"
+        className="lg:hidden fixed inset-0 z-40 bg-ink-900/60"
+      />
+    )}
+
+    {/* En escritorio el panel mide 240 px y lo que se anima es un clip-path: no
+        hay animación de width, así que el navegador no recalcula el layout en cada
+        frame. El recorte además limita los clics. En móvil el mismo panel es un
+        cajón que entra deslizándose (transform). */}
     <div
       data-sidebar
-      className="group fixed left-0 top-0 h-screen z-50 flex flex-col w-60
-        bg-ink-900 border-r border-white/10
-        shadow-[10px_0_30px_-12px_rgba(0,0,0,0.55)]
-        [clip-path:inset(0_176px_0_0)] hover:[clip-path:inset(0_0_0_0)] focus-within:[clip-path:inset(0_0_0_0)]
-        transition-[clip-path] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]
-        motion-reduce:transition-none">
+      className={`group fixed left-0 top-0 h-screen z-50 flex flex-col w-60
+        bg-ink-900 border-r border-white/10 shadow-[10px_0_30px_-12px_rgba(0,0,0,0.55)]
+        transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]
+        ${abierto ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        lg:transition-[clip-path]
+        lg:[clip-path:inset(0_176px_0_0)] lg:hover:[clip-path:inset(0_0_0_0)] lg:focus-within:[clip-path:inset(0_0_0_0)]
+        motion-reduce:transition-none`}
+      aria-hidden={!abierto ? undefined : false}>
 
       {/* Logo */}
       <div className="flex items-center gap-3 px-3 py-4 border-b border-white/10 shrink-0">
         <div className="w-10 h-10 bg-white rounded-md flex items-center justify-center shrink-0 p-1">
           <img src={logo} alt="Comfenalco Tolima" className="w-full h-full object-contain" />
         </div>
-        <div className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 delay-75 whitespace-nowrap overflow-hidden">
+        <div className="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100 transition-opacity duration-200 lg:delay-75 whitespace-nowrap overflow-hidden">
           <p className="text-white font-bold text-sm leading-tight">Comfenalco</p>
           <p className="text-ink-400 text-[11px]">Servicios de Recreación</p>
         </div>
@@ -123,7 +178,7 @@ export default function Sidebar({ tab, setTab, isAdmin, isRecreador, isPromotor,
           text-white font-bold text-sm ring-1 ring-accent-500/40">
           {getInitials(user?.full_name || user?.username)}
         </div>
-        <div className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 delay-75 whitespace-nowrap overflow-hidden min-w-0">
+        <div className="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100 transition-opacity duration-200 lg:delay-75 whitespace-nowrap overflow-hidden min-w-0">
           <p className="text-white font-semibold text-sm truncate leading-tight">
             {user?.full_name || user?.username}
           </p>
@@ -136,9 +191,9 @@ export default function Sidebar({ tab, setTab, isAdmin, isRecreador, isPromotor,
         {navItems.map(({ key, label, badge }) => (
           <button
             key={key}
-            onClick={() => setTab(key)}
+            onClick={() => irA(key)}
             title={label}
-            className={`w-full flex items-center gap-3 px-2 py-2.5 rounded-md border-l-2 transition-colors duration-150 group/item
+            className={`w-full flex items-center gap-3 px-2 py-3 lg:py-2.5 rounded-md border-l-2 transition-colors duration-150 group/item
               focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500/70 ${
               tab === key
                 ? 'bg-primary-800/60 border-accent-500 text-white'
@@ -148,13 +203,13 @@ export default function Sidebar({ tab, setTab, isAdmin, isRecreador, isPromotor,
             <div className="w-6 h-6 shrink-0 flex items-center justify-center">
               {NAV_ICONS[key]}
             </div>
-            <span className="text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 delay-75 flex-1 text-left">
+            <span className="text-sm font-medium whitespace-nowrap opacity-100 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100 transition-opacity duration-200 lg:delay-75 flex-1 text-left">
               {label}
             </span>
             {badge && (
               <span className="shrink-0 bg-accent-600 text-white text-[10px] w-5 h-5 rounded-full
                 flex items-center justify-center font-bold
-                opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 delay-75">
+                opacity-100 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100 transition-opacity duration-200 lg:delay-75">
                 {badge}
               </span>
             )}
@@ -166,9 +221,9 @@ export default function Sidebar({ tab, setTab, isAdmin, isRecreador, isPromotor,
           <>
             <div className="my-2 border-t border-white/10" />
             <button
-              onClick={onNuevaSolicitud}
+              onClick={nuevaSolicitud}
               title="Nueva Solicitud"
-              className="w-full flex items-center gap-3 px-2 py-2.5 rounded-md border-l-2 border-transparent
+              className="w-full flex items-center gap-3 px-2 py-3 lg:py-2.5 rounded-md border-l-2 border-transparent
                 text-ink-400 hover:bg-white/5 hover:text-accent-400 hover:border-accent-500 transition-colors duration-150"
             >
               <div className="w-6 h-6 shrink-0 flex items-center justify-center">
@@ -176,7 +231,7 @@ export default function Sidebar({ tab, setTab, isAdmin, isRecreador, isPromotor,
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
               </div>
-              <span className="text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 delay-75">
+              <span className="text-sm font-medium whitespace-nowrap opacity-100 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100 transition-opacity duration-200 lg:delay-75">
                 Nueva Solicitud
               </span>
             </button>
@@ -189,8 +244,8 @@ export default function Sidebar({ tab, setTab, isAdmin, isRecreador, isPromotor,
         <button
           onClick={handleLogout}
           title="Salir"
-          className="w-full flex items-center gap-3 px-2 py-2.5 rounded-md border-l-2 border-transparent
-            text-ink-500 hover:bg-red-900/20 hover:text-red-400 hover:border-red-500 transition-colors duration-150"
+          className="w-full flex items-center gap-3 px-2 py-3 lg:py-2.5 rounded-md border-l-2 border-transparent
+            text-ink-400 hover:bg-red-900/20 hover:text-red-400 hover:border-red-500 transition-colors duration-150"
         >
           <div className="w-6 h-6 shrink-0 flex items-center justify-center">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -198,11 +253,12 @@ export default function Sidebar({ tab, setTab, isAdmin, isRecreador, isPromotor,
                 d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
           </div>
-          <span className="text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 delay-75">
+          <span className="text-sm font-medium whitespace-nowrap opacity-100 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100 transition-opacity duration-200 lg:delay-75">
             Salir
           </span>
         </button>
       </div>
     </div>
+    </>
   )
 }

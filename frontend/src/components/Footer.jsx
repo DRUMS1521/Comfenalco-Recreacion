@@ -23,7 +23,7 @@ export default function Footer() {
                 <span className="text-ink-400">Email: </span>
                 <a
                   href="mailto:jd_drums1521@hotmail.com"
-                  className="text-accent-400 hover:text-white transition-colors"
+                  className="text-accent-400 hover:text-white transition-colors inline-block py-3"
                 >
                   jd_drums1521@hotmail.com
                 </a>
@@ -32,7 +32,7 @@ export default function Footer() {
                 <span className="text-ink-400">Teléfono: </span>
                 <a
                   href="tel:+573057044151"
-                  className="text-accent-400 hover:text-white transition-colors"
+                  className="text-accent-400 hover:text-white transition-colors inline-block py-3"
                 >
                   +57 305 704 4151
                 </a>

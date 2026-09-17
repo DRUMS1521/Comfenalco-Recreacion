@@ -8,14 +8,14 @@ const PIE_COLORS = ['#6366f1','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4',
 
 function KpiCard({ label, value, sub, colorClass, icon }) {
   return (
-    <div className={`card-corp border-l-2 p-5 flex items-start gap-4 ${colorClass}`}>
-      <div className="w-11 h-11 rounded-md border border-ink-200 flex items-center justify-center shrink-0">
+    <div className={`card-corp border-l-2 p-4 sm:p-5 min-w-0 flex items-start gap-3 sm:gap-4 ${colorClass}`}>
+      <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-md border border-ink-200 flex items-center justify-center shrink-0">
         {icon}
       </div>
-      <div>
-        <p className="text-2xl font-bold text-ink-800 leading-none">{value}</p>
-        <p className="text-sm font-medium text-ink-600 mt-0.5">{label}</p>
-        {sub && <p className="text-xs text-ink-400 mt-0.5">{sub}</p>}
+      <div className="min-w-0">
+        <p className="text-xl sm:text-2xl font-bold text-ink-800 leading-none">{value}</p>
+        <p className="text-xs sm:text-sm font-medium text-ink-600 mt-0.5 leading-tight">{label}</p>
+        {sub && <p className="text-xs text-ink-400 mt-0.5 leading-tight">{sub}</p>}
       </div>
     </div>
   )
@@ -138,7 +138,7 @@ export default function StatsAdmin({ recreadores }) {
       {subTab === 'empresarial' && <StatsEmpresarial />}
       {subTab !== 'empresarial' && <>
       {/* KPIs principales */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-4 gap-3 [&>*]:min-w-0">
         <KpiCard label="Total solicitudes" value={data?.total ?? 0} colorClass="border-ink-300"
           icon={<svg className="w-5 h-5 text-ink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>}
         />
@@ -280,7 +280,7 @@ export default function StatsAdmin({ recreadores }) {
               <p className="text-xs text-ink-400">Resumen según filtros aplicados</p>
             </div>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-4 gap-3 [&>*]:min-w-0">
             <div className="bg-ink-50 rounded-md p-3 text-center">
               <p className="text-xl font-bold text-ink-800">{resumenFiltrado.total}</p>
               <p className="text-xs text-ink-500 mt-0.5">Total actividades</p>

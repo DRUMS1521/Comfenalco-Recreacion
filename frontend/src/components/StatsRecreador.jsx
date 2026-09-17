@@ -90,7 +90,7 @@ export default function StatsRecreador() {
     <div className="space-y-6">
 
       {/* KPIs — se actualizan con cada filtro */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-4 gap-3 [&>*]:min-w-0">
         {[
           {
             label: 'Total actividades',
@@ -294,11 +294,11 @@ export default function StatsRecreador() {
 
             {/* Paginación */}
             {totalPaginas > 1 && (
-              <div className="px-5 py-4 border-t border-ink-100 flex items-center justify-between">
+              <div className="px-4 sm:px-5 py-4 border-t border-ink-100 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <button
                   onClick={() => setPagina(p => Math.max(1, p - 1))}
                   disabled={pagina === 1}
-                  className="flex items-center gap-1.5 text-sm font-medium text-ink-500 hover:text-primary-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="order-first sm:order-none justify-center min-h-[40px] flex items-center gap-1.5 text-sm font-medium text-ink-500 hover:text-primary-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -306,12 +306,21 @@ export default function StatsRecreador() {
                   Anterior
                 </button>
 
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((p) => (
+                {/* Ventana de páginas: antes se pintaban las 22 y la fila no cabía */}
+                <div className="flex items-center justify-center gap-1 flex-wrap">
+                  {Array.from({ length: Math.min(totalPaginas, 7) }, (_, i) => {
+                    const p = totalPaginas <= 7
+                      ? i + 1
+                      : pagina <= 4
+                        ? i + 1
+                        : pagina >= totalPaginas - 3
+                          ? totalPaginas - 6 + i
+                          : pagina - 3 + i
+                    return (
                     <button
                       key={p}
                       onClick={() => setPagina(p)}
-                      className={`w-8 h-8 rounded-md text-xs font-semibold transition-colors ${
+                      className={`w-10 h-10 sm:w-8 sm:h-8 rounded-md text-xs font-semibold transition-colors ${
                         p === pagina
                           ? 'bg-primary-800 text-white'
                           : 'text-ink-500 hover:bg-ink-100'
@@ -319,13 +328,14 @@ export default function StatsRecreador() {
                     >
                       {p}
                     </button>
-                  ))}
+                    )
+                  })}
                 </div>
 
                 <button
                   onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))}
                   disabled={pagina === totalPaginas}
-                  className="flex items-center gap-1.5 text-sm font-medium text-ink-500 hover:text-primary-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="justify-center min-h-[40px] flex items-center gap-1.5 text-sm font-medium text-ink-500 hover:text-primary-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 >
                   Siguiente
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

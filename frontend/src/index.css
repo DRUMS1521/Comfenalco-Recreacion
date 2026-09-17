@@ -14,6 +14,27 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  /* En pantallas táctiles ningún control queda por debajo del mínimo cómodo
+     (había paginación de 28 px, cierres de 24 px y campos de 34 px). */
+  @media (max-width: 639px) {
+    button,
+    [role='button'],
+    a.btn,
+    .btn {
+      min-height: 40px;
+    }
+    /* botones de solo icono: también anchura mínima (eran 36x36) */
+    button:empty,
+    button:has(> svg:only-child) {
+      min-width: 40px;
+    }
+    input:not([type='checkbox']):not([type='radio']),
+    select,
+    textarea {
+      min-height: 42px;
+    }
+  }
+
   /* Quien pide menos movimiento, no lo recibe. */
   @media (prefers-reduced-motion: reduce) {
     *,
@@ -56,12 +77,15 @@
            focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-red-700;
   }
   .btn-ghost {
+    /* min-h en móvil: los botones de icono de las tablas eran de 34 px, por debajo
+       del mínimo táctil recomendado */
     @apply inline-flex items-center justify-center gap-1.5 text-ink-500
+           min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0
            hover:text-primary-800 transition-colors duration-150
            focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-700 rounded-sm;
   }
   .btn-sm {
-    @apply px-3 py-1.5 text-[11px];
+    @apply px-3 py-2 sm:py-1.5 text-[11px];
   }
 
   .field-label {
