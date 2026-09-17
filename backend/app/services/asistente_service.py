@@ -215,6 +215,62 @@ def _detectar_empresa(db: Session, pregunta: str) -> Optional[str]:
     return mejor
 
 
+PALABRAS_VACIAS = {
+    "quien", "quienes", "quien va", "van", "va", "para", "por", "con", "los", "las", "una",
+    "unos", "unas", "del", "que", "como", "esta", "estan", "este", "ese", "esa", "esos",
+    "hay", "tiene", "tienen", "cual", "cuales", "cuando", "donde", "hoy", "manana", "ayer",
+    "lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo", "semana",
+    "mes", "dia", "dias", "actividad", "actividades", "agenda", "programad", "asignado",
+    "asignados", "encargado", "encargados", "cubre", "trabaja", "trabajan", "evento",
+    "eventos", "solicitud", "solicitudes", "recreador", "recreadores", "persona",
+    "personas", "turno", "horario", "hora", "horas", "cual", "mas", "menos", "todo",
+    "todos", "ver", "dime", "muestrame", "saber", "puedes", "decir",
+}
+
+
+def _coincide_con_algo(db: Session, texto: str) -> bool:
+    """¿El texto aparece en alguna actividad (empresa, servicio, observaciones, ciudad)?"""
+    patron = f"%{texto}%"
+    return db.query(Solicitud.id).filter(or_(
+        Solicitud.empresa.ilike(patron),
+        Solicitud.tipo_servicio.ilike(patron),
+        Solicitud.observaciones.ilike(patron),
+        Solicitud.ciudad.ilike(patron),
+    )).first() is not None
+
+
+def _detectar_concepto(db: Session, pregunta: str) -> Optional[str]:
+    """Concepto del que habla la pregunta: 'caike', 'cru', 'escuelas deportivas'…
+
+    Se buscan las palabras significativas (quitando las vacías) y se prueba la frase
+    más larga que exista de verdad en la base, para no inventar filtros. Es lo que
+    permite responder "quién va el domingo para caike" aunque CAIKE solo aparezca
+    dentro de las observaciones.
+    """
+    t = _norm(pregunta)
+    # fuera las fechas ISO que se añaden al heredar el turno anterior ("2026-09-20"):
+    # si no, "2026" se colaba como concepto porque aparece en las observaciones
+    t = re.sub(r"\d{4}-\d{2}-\d{2}", " ", t)
+    palabras = [w for w in re.split(r"[^a-z0-9]+", t)
+                if len(w) >= 3 and not w.isdigit() and w not in PALABRAS_VACIAS]
+    if not palabras:
+        return None
+    # descartar los nombres propios de recreadores
+    nombres = set()
+    for u in db.query(User).filter(User.is_recreador == True).all():  # noqa: E712
+        for nombre in {_norm(u.full_name or ""), _norm(u.username.replace(".", " "))}:
+            nombres |= {x for x in nombre.split() if len(x) >= 3}
+    palabras = [w for w in palabras if w not in nombres]
+    if not palabras:
+        return None
+    for n in range(min(3, len(palabras)), 0, -1):
+        for i in range(len(palabras) - n + 1):
+            frase = " ".join(palabras[i:i + n])
+            if _coincide_con_algo(db, frase):
+                return frase
+    return None
+
+
 def _recreadores_ambiguos(db: Session, pregunta: str) -> List[User]:
     """Recreadores cuyo nombre parcial aparece en la frase (para pedir precisión)."""
     t = _norm(pregunta)
@@ -230,7 +286,9 @@ def _recreadores_ambiguos(db: Session, pregunta: str) -> List[User]:
 
 def _etiqueta_rango(desde: date, hasta: date, etiqueta: str) -> str:
     if desde == hasta:
-        return f"{etiqueta} ({_fecha_larga(desde)})"
+        # "hoy" y "mañana" necesitan la fecha; "el domingo 20 de septiembre…" ya la trae
+        return (f"{etiqueta} ({_fecha_larga(desde)})"
+                if etiqueta in ("hoy", "mañana", "ayer") else etiqueta)
     return (f"{etiqueta} (del {desde.day} al {hasta.day} de "
             f"{MESES[hasta.month - 1]} de {hasta.year})")
 
@@ -580,6 +638,92 @@ def _cotizaciones(db: Session, user: User, pregunta: str,
     }
 
 
+def _quien_va(db: Session, user: User, pregunta: str,
+              concepto: Optional[str] = None) -> Dict[str, Any]:
+    """Quién tiene asignada cada actividad de una fecha (opcionalmente de un tema)."""
+    desde, hasta, etiqueta = _detectar_fecha(pregunta)
+    q = db.query(Solicitud).filter(
+        Solicitud.fecha_evento >= desde.isoformat(),
+        Solicitud.fecha_evento <= hasta.isoformat(),
+        Solicitud.estado == "programado",
+    )
+    # alcance por rol
+    if user.is_recreador:
+        q = q.filter(or_(Solicitud.recreador_id == user.id,
+                         Solicitud.recreadores.any(User.id == user.id)))
+    elif not (user.is_admin or user.is_cotizador):
+        q = q.filter(Solicitud.user_id == user.id)
+
+    if not concepto:
+        # mismo criterio que la agenda: las tareas administrativas del cronograma no
+        # se listan salvo que se pregunte por un tema concreto
+        q = q.filter(or_(Solicitud.categoria_origen.is_(None),
+                         Solicitud.categoria_origen != "administrativo"))
+
+    if concepto:
+        patron = f"%{concepto}%"
+        q = q.filter(or_(
+            Solicitud.empresa.ilike(patron),
+            Solicitud.tipo_servicio.ilike(patron),
+            Solicitud.observaciones.ilike(patron),
+            Solicitud.ciudad.ilike(patron),
+        ))
+
+    solicitudes = q.order_by(Solicitud.fecha_evento, Solicitud.hora_inicio).all()
+    de_quien = f" de «{concepto}»" if concepto else ""
+
+    if not solicitudes:
+        # ¿existe el concepto en otra fecha? Se avisa para no dejar sin salida
+        alternativa = ""
+        if concepto:
+            existe = db.query(Solicitud).filter(
+                or_(Solicitud.empresa.ilike(f"%{concepto}%"),
+                    Solicitud.tipo_servicio.ilike(f"%{concepto}%"),
+                    Solicitud.observaciones.ilike(f"%{concepto}%"))
+            ).order_by(Solicitud.fecha_evento).first()
+            if existe:
+                try:
+                    anio, mes, dia = (int(x) for x in str(existe.fecha_evento).split("-"))
+                    alternativa = (" Lo encuentro en otras fechas, por ejemplo el "
+                                   f"{_fecha_larga(date(anio, mes, dia))}.")
+                except (ValueError, TypeError):
+                    alternativa = ""
+        return {
+            "respuesta": (f"No hay actividades{de_quien} {_etiqueta_rango(desde, hasta, etiqueta)}."
+                          + alternativa),
+            "tipo": "texto",
+            "sugerencias": ["¿Qué actividades hay hoy?", "¿Quién va mañana?"],
+        }
+
+    items = []
+    personas = set()
+    for s in solicitudes:
+        quienes = [_nombre(r) for r in s.recreadores] or (
+            [_nombre(s.recreador)] if s.recreador else [])
+        if not quienes:
+            quienes = ["Sin asignar"]
+        personas.update(quienes)
+        items.append({
+            "titulo": f"{s.hora_inicio}–{s.hora_fin} · {s.empresa}",
+            "subtitulo": "Van: " + ", ".join(quienes),
+            "meta": f"{s.ciudad or ''}".strip() or (s.tipo_servicio or ""),
+            "estado": "libre" if quienes == ["Sin asignar"] else None,
+            "horas": None,
+        })
+
+    plural = "actividad" if len(solicitudes) == 1 else "actividades"
+    return {
+        "respuesta": (f"{_etiqueta_rango(desde, hasta, etiqueta).capitalize()} hay "
+                      f"**{len(solicitudes)} {plural}{de_quien}** con "
+                      f"{len(personas)} recreador{'es' if len(personas) != 1 else ''} asignado"
+                      f"{'s' if len(personas) != 1 else ''}."),
+        "tipo": "actividades",
+        "items": items[:10],
+        "extra": f"y {len(solicitudes) - 10} más" if len(solicitudes) > 10 else None,
+        "sugerencias": ["¿Quién va mañana?", "¿Qué actividades hay el domingo?"],
+    }
+
+
 def _menos_carga(db: Session, user: User, pregunta: str) -> Dict[str, Any]:
     desde, hasta, etiqueta = _detectar_fecha(pregunta)
     recreadores = db.query(User).filter(User.is_recreador == True, User.is_active == True).all()  # noqa: E712
@@ -754,6 +898,13 @@ def responder(db: Session, user: User, pregunta: str,
     # Otras intenciones con palabras propias: también cuentan como "tema nuevo",
     # para que un seguimiento como "¿y quién tiene menos carga?" no herede la fecha
     # de la pregunta anterior.
+    menciona_quien_va = any(p in t for p in (
+        "quien va", "quienes van", "quien esta", "quienes estan", "quien cubre",
+        "quien trabaja", "quienes trabajan", "quien asiste", "asignado a", "encargado de",
+        "van para", "quienes cubren"))
+    # OJO: "quién va" NO entra aquí a propósito. Depende de la fecha, así que como
+    # seguimiento ("¿y quién va?") debe heredar la del turno anterior; bloquearla
+    # hacía que respondiera siempre por hoy.
     menciona_otro = (
         any(p in t for p in ("menos carga", "quien tiene menos", "mas libre", "menos actividades",
                              "mas descansado", "sin asignar", "sin recreador", "sin nadie",
@@ -791,6 +942,9 @@ def responder(db: Session, user: User, pregunta: str,
         tema = None
 
     # ── intenciones específicas (solo con palabras propias, no heredan) ──
+    if menciona_quien_va:
+        r = _quien_va(db, user, pregunta, _detectar_concepto(db, pregunta))
+        return _cerrar(r, contexto, tema="quien_va", fecha=desde, etiqueta_fecha=etiqueta)
     if any(p in t for p in ("menos carga", "quien tiene menos", "mas libre", "menos actividades",
                             "mas descansado")):
         r = _menos_carga(db, user, pregunta)
@@ -823,7 +977,13 @@ def responder(db: Session, user: User, pregunta: str,
             return _cerrar(r, contexto, tema="horas", recreador=objetivo, fecha=desde,
                            etiqueta_fecha=etiqueta)
 
-    # ── una empresa concreta ──
+    # ── una empresa o tema concreto (incluye conceptos de las observaciones) ──
+    if not user.is_recreador and not user.is_cotizador:
+        concepto = _detectar_concepto(db, pregunta)
+        if concepto:
+            r = _quien_va(db, user, pregunta, concepto)
+            return _cerrar(r, contexto, tema="concepto", fecha=desde, etiqueta_fecha=etiqueta)
+
     empresa = _detectar_empresa(db, pregunta)
     if not empresa and seg and contexto.get("empresa"):
         empresa = contexto["empresa"]
