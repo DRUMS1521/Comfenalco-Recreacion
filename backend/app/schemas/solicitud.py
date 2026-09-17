@@ -57,6 +57,10 @@ class SolicitudResponse(BaseModel):
     fecha_finalizacion: Optional[datetime] = None
     estado: str
     tipo_hora_extra: Optional[str] = None
+    # Clasificación del origen (ver models/solicitud.py)
+    categoria_origen: Optional[str] = None
+    categoria_origen_motivo: Optional[str] = None
+    categoria_revisada: bool = False
     user_id: int
     user_username: Optional[str] = None
     user_full_name: Optional[str] = None
@@ -89,6 +93,9 @@ class ResumenSolicitudes(BaseModel):
     finalizadas_semana: int
     semana_desde: str
     semana_hasta: str
+    # Cuántas quedan fuera por estar clasificadas como administrativas (para que
+    # el filtro nunca oculte datos en silencio).
+    administrativas: int = 0
 
 
 class ConflictoHorario(BaseModel):

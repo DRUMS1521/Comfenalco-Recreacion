@@ -1,10 +1,13 @@
+import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import text
 from app.core.config import settings
 from app.core.database import Base, engine, SessionLocal
+from app.core.migrations import aplicar_migraciones
 from app.routes import auth, solicitudes, stats, empresas, users, horas_extra, viaticos
+
+logger = logging.getLogger("comfenalco")
 
 
 def _seed_users_if_empty():
@@ -37,10 +40,23 @@ def _seed_users_if_empty():
         count = db.query(User).count()
         if count > 0:
             return
+        # Contraseña común para el sembrado: si SEED_PASSWORD_DEFAULT está
+        # definida se usa esa (recomendado fuera de desarrollo); si no, se usan
+        # las de siempre pero queda constancia en el log, porque son públicas.
+        password_comun = settings.SEED_PASSWORD_DEFAULT
+        if password_comun:
+            logger.info("Sembrando %d usuarios con SEED_PASSWORD_DEFAULT", len(USUARIOS))
+        else:
+            logger.warning(
+                "Sembrando %d usuarios con contraseñas por defecto (adriana123/admin123/"
+                "promotor123/recreador123). Define SEED_PASSWORD_DEFAULT y cambia las "
+                "contraseñas antes de exponer el sistema.",
+                len(USUARIOS),
+            )
         for u in USUARIOS:
             db.add(User(
                 username=u["username"], email=u["email"],
-                hashed_password=get_password_hash(u["password"]),
+                hashed_password=get_password_hash(password_comun or u["password"]),
                 full_name=u["full_name"], empresa="Comfenalco Tolima",
                 cargo=u["cargo"], is_active=True,
                 is_admin=u["is_admin"], is_recreador=u["is_recreador"],
@@ -55,21 +71,16 @@ def _seed_users_if_empty():
 async def lifespan(app: FastAPI):
     try:
         Base.metadata.create_all(bind=engine)
-    except Exception:
-        pass
+    except Exception as e:  # noqa: BLE001
+        logger.warning("create_all no pudo completarse: %s", e)
 
-    _migrations = [
-        "ALTER TABLE users ADD COLUMN is_promotor BOOLEAN DEFAULT 0",
-        "ALTER TABLE users ADD COLUMN is_super_admin BOOLEAN DEFAULT 0",
-        "ALTER TABLE users ADD COLUMN cargo TEXT",
-    ]
-    with engine.connect() as conn:
-        for sql in _migrations:
-            try:
-                conn.execute(text(sql))
-                conn.commit()
-            except Exception:
-                pass
+    # Migraciones portables (SQLite/PostgreSQL), idempotentes y con log real de
+    # lo aplicado y lo fallido. Antes era un try/except: pass silencioso.
+    resumen = aplicar_migraciones(engine)
+    if resumen["aplicadas"]:
+        logger.info("Migraciones aplicadas: %s", ", ".join(resumen["aplicadas"]))
+    if resumen["errores"]:
+        logger.error("Migraciones con error: %s", "; ".join(resumen["errores"]))
 
     _seed_users_if_empty()
 

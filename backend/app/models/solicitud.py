@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Table
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Table, Boolean, false
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
@@ -37,6 +37,16 @@ class Solicitud(Base):
     estado = Column(String, default="pendiente")
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     recreador_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # primario
+    # Clasificación del origen de la solicitud (ortogonal al flujo de `estado`).
+    # La migración del cronograma desde Excel insertó tareas administrativas
+    # mezcladas con eventos reales; esto permite excluirlas de las vistas sin
+    # borrar ni reescribir ninguna fila.
+    #   categoria_origen: 'real' | 'administrativo' | 'dudoso' | NULL (sin clasificar)
+    #   categoria_origen_motivo: regla que la clasificó, para trazabilidad
+    #   categoria_revisada: un humano confirmó/corrigió la clasificación
+    categoria_origen = Column(String, nullable=True, index=True)
+    categoria_origen_motivo = Column(String, nullable=True)
+    categoria_revisada = Column(Boolean, default=False, server_default=false())
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relación many-to-many con todos los recreadores asignados

@@ -103,13 +103,33 @@ def _scope_query(
     return query
 
 
+def excluir_administrativas(query, incluir_administrativo: bool = False):
+    """Deja fuera las solicitudes clasificadas como administrativas.
+
+    La migración del cronograma desde Excel insertó tareas internas (novedades
+    de personal, exámenes médicos, bodega, papelería, programas internos) que hoy
+    ensucian calendarios y estadísticas. Las filas sin clasificar (NULL) siguen
+    visibles para no esconder datos por omisión.
+    """
+    if incluir_administrativo:
+        return query
+    return query.filter(
+        or_(
+            Solicitud.categoria_origen.is_(None),
+            Solicitud.categoria_origen != "administrativo",
+        )
+    )
+
+
 def _apply_filters(
     query,
     estado: Optional[str] = None,
     search: Optional[str] = None,
     fecha_desde: Optional[str] = None,
     fecha_hasta: Optional[str] = None,
+    incluir_administrativo: bool = False,
 ):
+    query = excluir_administrativas(query, incluir_administrativo)
     if estado:
         query = query.filter(Solicitud.estado == estado)
     if fecha_desde:
@@ -145,9 +165,10 @@ def get_solicitudes(
     fecha_desde: Optional[str] = None,
     fecha_hasta: Optional[str] = None,
     sort_dir: str = "asc",
+    incluir_administrativo: bool = False,
 ) -> List[SolicitudResponse]:
     query = _scope_query(db, user_id, recreador_id)
-    query = _apply_filters(query, estado, search, fecha_desde, fecha_hasta)
+    query = _apply_filters(query, estado, search, fecha_desde, fecha_hasta, incluir_administrativo)
     solicitudes = _ordenar(query, sort_dir).all()
     return _enrich_many(solicitudes, db)
 
@@ -163,6 +184,7 @@ def get_solicitudes_paginadas(
     fecha_desde: Optional[str] = None,
     fecha_hasta: Optional[str] = None,
     sort_dir: str = "asc",
+    incluir_administrativo: bool = False,
 ) -> Dict[str, Any]:
     """Listado paginado en servidor: filtra, ordena y cuenta en SQL y solo
     materializa la página pedida (evita transferir y resolver miles de filas)."""
@@ -170,7 +192,7 @@ def get_solicitudes_paginadas(
     page_size = min(max(1, int(page_size)), PAGE_SIZE_MAX)
 
     query = _scope_query(db, user_id, recreador_id)
-    query = _apply_filters(query, estado, search, fecha_desde, fecha_hasta)
+    query = _apply_filters(query, estado, search, fecha_desde, fecha_hasta, incluir_administrativo)
 
     total = query.with_entities(sqlfunc.count(Solicitud.id)).scalar() or 0
     pages = max(1, -(-total // page_size))  # techo entero
@@ -202,10 +224,11 @@ def get_resumen_solicitudes(
     db: Session,
     user_id: Optional[int] = None,
     recreador_id: Optional[int] = None,
+    incluir_administrativo: bool = False,
 ) -> Dict[str, Any]:
     """Conteos por estado para los contadores del dashboard, resueltos con
     GROUP BY en la base de datos (antes el frontend contaba sobre la lista completa)."""
-    base = _scope_query(db, user_id, recreador_id)
+    base = excluir_administrativas(_scope_query(db, user_id, recreador_id), incluir_administrativo)
 
     filas = (
         base.with_entities(Solicitud.estado, sqlfunc.count(Solicitud.id))
@@ -226,12 +249,21 @@ def get_resumen_solicitudes(
         or 0
     )
 
+    administrativas = (
+        _scope_query(db, user_id, recreador_id)
+        .filter(Solicitud.categoria_origen == "administrativo")
+        .with_entities(sqlfunc.count(Solicitud.id))
+        .scalar()
+        or 0
+    )
+
     return {
         "total": sum(por_estado.values()),
         "por_estado": por_estado,
         "finalizadas_semana": finalizadas_semana,
         "semana_desde": desde,
         "semana_hasta": hasta,
+        "administrativas": administrativas,
     }
 
 

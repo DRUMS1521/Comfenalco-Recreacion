@@ -23,6 +23,15 @@ class Settings(BaseSettings):
     ARGUS_COOKIE: str = ""
     ARGUS_PDATOS: str = ""
 
+    # Sembrado inicial de usuarios: si SEED_PASSWORD_DEFAULT está definida, todos
+    # los usuarios sembrados usan esa contraseña en vez de las de desarrollo
+    # (que son públicas y están escritas en el código).
+    SEED_PASSWORD_DEFAULT: str = ""
+
+    # Excluir por defecto de calendarios, listados y estadísticas las solicitudes
+    # clasificadas como administrativas (ruido de la migración del cronograma).
+    EXCLUIR_ADMINISTRATIVAS_POR_DEFECTO: bool = True
+
     class Config:
         env_file = ".env"
         extra = "ignore"

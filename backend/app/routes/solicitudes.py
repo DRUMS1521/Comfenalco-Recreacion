@@ -25,8 +25,14 @@ from app.services.solicitud_service import (
     usuario_puede_ver_solicitud,
 )
 from app.models.user import User
+from app.core.config import settings
 
 router = APIRouter(prefix="/solicitudes", tags=["solicitudes"])
+
+# Por defecto se ocultan las solicitudes administrativas (ruido de la migración
+# del cronograma). Se puede invertir el criterio con EXCLUIR_ADMINISTRATIVAS_POR_DEFECTO=false
+# o pedirlas explícitamente con ?incluir_administrativo=true.
+ADMIN_POR_DEFECTO = not settings.EXCLUIR_ADMINISTRATIVAS_POR_DEFECTO
 
 
 def _alcance(current_user: User):
@@ -59,6 +65,7 @@ def listar_solicitudes_paginadas(
     fecha_desde: Optional[str] = None,
     fecha_hasta: Optional[str] = None,
     sort_dir: str = Query("asc", pattern="^(asc|desc)$"),
+    incluir_administrativo: bool = Query(ADMIN_POR_DEFECTO),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -73,17 +80,21 @@ def listar_solicitudes_paginadas(
         fecha_desde=fecha_desde,
         fecha_hasta=fecha_hasta,
         sort_dir=sort_dir,
+        incluir_administrativo=incluir_administrativo,
         **_alcance(current_user),
     )
 
 
 @router.get("/resumen", response_model=ResumenSolicitudes)
 def resumen_solicitudes(
+    incluir_administrativo: bool = Query(ADMIN_POR_DEFECTO),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """Conteos por estado y finalizadas de la semana, calculados con GROUP BY."""
-    return get_resumen_solicitudes(db, **_alcance(current_user))
+    return get_resumen_solicitudes(
+        db, incluir_administrativo=incluir_administrativo, **_alcance(current_user)
+    )
 
 
 @router.get("/", response_model=List[SolicitudResponse])
@@ -93,6 +104,7 @@ def listar_solicitudes(
     fecha_desde: Optional[str] = None,
     fecha_hasta: Optional[str] = None,
     sort_dir: str = Query("asc", pattern="^(asc|desc)$"),
+    incluir_administrativo: bool = Query(ADMIN_POR_DEFECTO),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -105,6 +117,7 @@ def listar_solicitudes(
         fecha_desde=fecha_desde,
         fecha_hasta=fecha_hasta,
         sort_dir=sort_dir,
+        incluir_administrativo=incluir_administrativo,
         **_alcance(current_user),
     )
 

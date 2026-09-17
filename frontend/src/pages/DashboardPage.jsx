@@ -243,6 +243,9 @@ export default function DashboardPage() {
   const [sortDir, setSortDir] = useState('asc')   // 'asc' | 'desc' por fecha_evento
   const [page, setPage] = useState(1)
   const [dismissedHoy, setDismissedHoy] = useState(false)
+  // El backend oculta por defecto las solicitudes administrativas (ruido de la
+  // migración del cronograma). Este interruptor las vuelve a mostrar.
+  const [incluirAdmin, setIncluirAdmin] = useState(false)
 
   const isRecreador = user?.is_recreador
   const isAdmin = user?.is_admin
@@ -255,18 +258,23 @@ export default function DashboardPage() {
   /** Contadores por estado, calculados en el servidor. */
   const fetchResumen = useCallback(async () => {
     try {
-      const { data } = await api.get('/solicitudes/resumen')
+      const { data } = await api.get('/solicitudes/resumen', {
+        params: { incluir_administrativo: incluirAdmin },
+      })
       setResumen(data)
     } catch (e) {
       console.error(e)
     }
-  }, [])
+  }, [incluirAdmin])
 
   /** Página del listado del admin: filtra, cuenta y ordena en el servidor. */
   const fetchPagina = useCallback(async () => {
     setLoading(true)
     try {
-      const params = { page, page_size: PAGE_SIZE, sort_dir: sortDir }
+      const params = {
+        page, page_size: PAGE_SIZE, sort_dir: sortDir,
+        incluir_administrativo: incluirAdmin,
+      }
       if (filtroEstado) params.estado = filtroEstado
       if (searchDebounced) params.q = searchDebounced
       const { data } = await api.get('/solicitudes/paginadas', { params })
@@ -276,34 +284,39 @@ export default function DashboardPage() {
     } finally {
       setLoading(false)
     }
-  }, [page, filtroEstado, searchDebounced, sortDir])
+  }, [page, filtroEstado, searchDebounced, sortDir, incluirAdmin])
 
   /** Lista completa bajo demanda (calendarios, vistas por día, recreador/promotor). */
   const fetchListaCompleta = useCallback(async (force = false) => {
     if (!force && solicitudes.length) return
     setCargandoCompletas(true)
     try {
-      const { data } = await api.get('/solicitudes/')
+      const { data } = await api.get('/solicitudes/', {
+        params: { incluir_administrativo: incluirAdmin },
+      })
       setSolicitudes(data)
     } catch (e) {
       console.error(e)
     } finally {
       setCargandoCompletas(false)
     }
-  }, [solicitudes.length])
+  }, [solicitudes.length, incluirAdmin])
 
   /** Actividades programadas para hoy (banner del admin). */
   const fetchEventosHoy = useCallback(async () => {
     if (!isAdmin) return
     try {
       const { data } = await api.get('/solicitudes/', {
-        params: { fecha_desde: hoy, fecha_hasta: hoy, estado: 'programado' },
+        params: {
+          fecha_desde: hoy, fecha_hasta: hoy, estado: 'programado',
+          incluir_administrativo: incluirAdmin,
+        },
       })
       setEventosHoy(data)
     } catch (e) {
       console.error(e)
     }
-  }, [isAdmin, hoy])
+  }, [isAdmin, hoy, incluirAdmin])
 
   /** Recarga lo que el usuario está viendo ahora mismo. */
   const refrescar = useCallback(async () => {
@@ -349,6 +362,13 @@ export default function DashboardPage() {
 
   // Reset page cuando cambia filtro, búsqueda u orden
   useEffect(() => { setPage(1) }, [filtroEstado, searchDebounced, sortDir])
+
+  // Si el dataset completo ya estaba cargado (calendario), se recarga al cambiar
+  // el interruptor de administrativas para no mostrar datos desactualizados.
+  useEffect(() => {
+    if (solicitudes.length) fetchListaCompleta(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [incluirAdmin])
 
   // La búsqueda se envía al servidor con un pequeño retardo (evita una petición por tecla)
   useEffect(() => {
@@ -655,6 +675,23 @@ export default function DashboardPage() {
                         </svg>
                         {sortDir === 'asc' ? 'Fecha ↑' : 'Fecha ↓'}
                       </button>
+
+                      {/* Interruptor de administrativas (ocultas por defecto) */}
+                      {resumen.administrativas > 0 && (
+                        <label
+                          className="flex items-center gap-1.5 text-xs text-ink-500 shrink-0 cursor-pointer select-none"
+                          title="Las tareas administrativas del cronograma migrado se ocultan por defecto"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={incluirAdmin}
+                            onChange={(e) => setIncluirAdmin(e.target.checked)}
+                            className="accent-primary-800"
+                          />
+                          Incluir administrativas
+                          <span className="text-ink-400">({resumen.administrativas})</span>
+                        </label>
+                      )}
 
                       {/* Contador */}
                       <span className="text-xs text-ink-400 shrink-0">

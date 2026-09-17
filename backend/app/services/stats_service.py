@@ -6,6 +6,7 @@ from app.models.user import User
 from app.models.empresa import Empresa
 # Cálculo de horas centralizado (antes duplicado en este módulo y en horas_extra_service).
 from app.services.horas_utils import calc_hours as _calc_hours  # noqa: F401
+from app.services.solicitud_service import excluir_administrativas
 
 
 def _apply_filters(query, fecha_desde: Optional[str], fecha_hasta: Optional[str], tipo_servicio: Optional[str]):
@@ -24,6 +25,7 @@ def get_stats_recreador(
     fecha_desde: Optional[str] = None,
     fecha_hasta: Optional[str] = None,
     tipo_servicio: Optional[str] = None,
+    incluir_administrativo: bool = False,
 ) -> Dict[str, Any]:
     base_q = db.query(Solicitud).filter(
         or_(
@@ -31,6 +33,7 @@ def get_stats_recreador(
             Solicitud.recreadores.any(User.id == recreador_id),
         )
     ).filter(Solicitud.estado != "eliminado")
+    base_q = excluir_administrativas(base_q, incluir_administrativo)
 
     filtered_q = _apply_filters(base_q, fecha_desde, fecha_hasta, tipo_servicio)
     solicitudes = filtered_q.order_by(Solicitud.fecha_evento.desc()).all()
@@ -79,8 +82,10 @@ def get_stats_admin(
     fecha_hasta: Optional[str] = None,
     tipo_servicio: Optional[str] = None,
     recreador_id: Optional[int] = None,
+    incluir_administrativo: bool = False,
 ) -> Dict[str, Any]:
     base_q = db.query(Solicitud).filter(Solicitud.estado != "eliminado")
+    base_q = excluir_administrativas(base_q, incluir_administrativo)
 
     if recreador_id:
         base_q = base_q.filter(
@@ -176,8 +181,10 @@ def get_stats_empresarial(
     fecha_hasta: Optional[str] = None,
     tipo_servicio: Optional[str] = None,
     empresa_nombre: Optional[str] = None,
+    incluir_administrativo: bool = False,
 ) -> Dict[str, Any]:
     base_q = db.query(Solicitud).filter(Solicitud.estado != "eliminado")
+    base_q = excluir_administrativas(base_q, incluir_administrativo)
 
     if empresa_nombre:
         base_q = base_q.filter(Solicitud.empresa == empresa_nombre)
