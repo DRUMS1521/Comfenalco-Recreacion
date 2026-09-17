@@ -19,7 +19,9 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = "http://localhost:5173"
 
     # Integración Argus (portal self-service Comfenalco) para consultar viáticos.
-    # La cookie de sesión expira periódicamente y debe renovarse en .env.
+    # ARGUS_PDATOS (empresa-empleado) es obligatorio. ARGUS_COOKIE es opcional:
+    # se verificó que la consulta devuelve lo mismo con cookie válido, inválido o
+    # ausente, así que su caducidad no rompe la integración.
     ARGUS_COOKIE: str = ""
     ARGUS_PDATOS: str = ""
 
