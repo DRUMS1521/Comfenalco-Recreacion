@@ -1,6 +1,9 @@
 import axios from 'axios'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+// En desarrollo se usa el proxy de Vite ('/api' -> http://localhost:8000): así la
+// aplicación funciona igual desde localhost o desde la IP de la red (celular,
+// tablet) sin depender del CORS. En producción VITE_API_URL apunta al backend.
+const API_URL = import.meta.env.VITE_API_URL || '/api'
 
 const api = axios.create({
   baseURL: API_URL,

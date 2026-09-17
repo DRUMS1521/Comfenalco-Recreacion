@@ -6,7 +6,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import Base, engine, SessionLocal
 from app.core.migrations import aplicar_migraciones
-from app.routes import auth, solicitudes, stats, empresas, users, horas_extra, viaticos, cotizaciones
+from app.routes import (
+    auth, solicitudes, stats, empresas, users, horas_extra, viaticos,
+    cotizaciones, asistente,
+)
 
 logger = logging.getLogger("comfenalco")
 
@@ -107,15 +110,27 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Orígenes permitidos: los de siempre + los que se configuren por entorno
+_origenes = [
+    settings.FRONTEND_URL,
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:3000",
+    "https://comfenalco-frontend-production.up.railway.app",
+]
+_origenes += [o.strip() for o in (settings.CORS_EXTRA_ORIGINS or "").split(",") if o.strip()]
+
+# Red local (celular/tablet en la misma wifi) — útil sobre todo en desarrollo.
+_regex_red_local = (
+    r"^http://(localhost|127\.0\.0\.1|\[::1\]|"
+    r"192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|"
+    r"172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})(:\d+)?$"
+) if settings.CORS_PERMITIR_RED_LOCAL else None
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        settings.FRONTEND_URL,
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://localhost:3000",
-        "https://comfenalco-frontend-production.up.railway.app",
-    ],
+    allow_origins=_origenes,
+    allow_origin_regex=_regex_red_local,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -130,6 +145,7 @@ app.include_router(horas_extra.router)
 app.include_router(viaticos.router)
 app.include_router(cotizaciones.router)
 app.include_router(cotizaciones.catalogo_router)
+app.include_router(asistente.router)
 
 
 @app.get("/")

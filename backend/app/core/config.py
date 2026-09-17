@@ -30,6 +30,15 @@ class Settings(BaseSettings):
     # (que son públicas y están escritas en el código).
     SEED_PASSWORD_DEFAULT: str = ""
 
+    # Orígenes adicionales permitidos por CORS, separados por coma
+    # (por ejemplo el dominio de un túnel o una IP concreta de la red).
+    CORS_EXTRA_ORIGINS: str = ""
+
+    # Permitir orígenes de la red local (192.168.x.x, 10.x.x.x, 172.16-31.x.x y
+    # localhost). Es lo que permite usar la aplicación desde el celular o una
+    # tablet en la misma red durante el desarrollo.
+    CORS_PERMITIR_RED_LOCAL: bool = True
+
     # Excluir por defecto de calendarios, listados y estadísticas las solicitudes
     # clasificadas como administrativas (ruido de la migración del cronograma).
     EXCLUIR_ADMINISTRATIVAS_POR_DEFECTO: bool = True

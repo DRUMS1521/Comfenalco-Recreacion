@@ -18,6 +18,7 @@ import api from '../services/api'
 import { notify } from '../utils/notify'
 import { formatHora } from '../utils/timeFormat'
 import WelcomeModal from '../components/WelcomeModal'
+import AsistenteChat from '../components/AsistenteChat'
 
 // Diferidas: recharts pesa más que todo el resto de la app y solo se necesita al
 // abrir Estadísticas; Viáticos solo lo usa el jefe de recreación.
@@ -1043,6 +1044,9 @@ export default function DashboardPage() {
           onConfirm={handleFinalizar}
         />
       )}
+
+      {/* Asistente flotante: disponible en todo el panel, saluda por su nombre */}
+      <AsistenteChat onNavegar={setTab} />
 
       {showWelcome && (
         <WelcomeModal
