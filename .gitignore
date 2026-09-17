@@ -27,6 +27,13 @@ wheels/
 *.db
 *.sqlite
 *.sqlite3
+# Respaldos y artefactos de SQLite/Postgres (evita commitear binarios de BD)
+*.db.backup*
+*.db-wal
+*.db-shm
+*.db-journal
+*.dump
+*.sql.gz
 
 # Node
 node_modules/
