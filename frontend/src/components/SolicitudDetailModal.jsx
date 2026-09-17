@@ -146,6 +146,34 @@ export default function SolicitudDetailModal({ solicitud: sol, onClose, onCambia
             </Section>
           )}
 
+          {/* Exceso de horas clasificado al programar (por recreador, tipo y cantidad) */}
+          {sol.horas_extra_clasificadas?.length > 0 && (
+            <Section title="Horas extra clasificadas">
+              {sol.horas_extra_clasificadas.map((h, i) => {
+                const rec = sol.recreadores_asignados?.find((r) => r.id === h.recreador_id)
+                const tipo = { diurnas: 'Diurnas', dominicales: 'Dominicales', festivas: 'Festivas' }[h.tipo] || h.tipo
+                return (
+                  <div key={`${h.recreador_id}-${h.tipo}-${i}`}
+                    className="col-span-2 flex items-center justify-between gap-3 bg-orange-50 border-l-2 border-orange-400 px-3 py-2">
+                    <span className="text-sm text-ink-800">
+                      {rec?.full_name || rec?.username || `#${h.recreador_id}`}
+                    </span>
+                    <span className="text-xs font-semibold text-orange-800">{h.horas}h · {tipo}</span>
+                  </div>
+                )
+              })}
+            </Section>
+          )}
+
+          {/* Origen del registro: la migración del cronograma trajo tareas internas */}
+          {sol.categoria_origen && sol.categoria_origen !== 'real' && (
+            <p className="text-[11px] text-ink-400 text-center">
+              Origen: <span className="font-semibold">{sol.categoria_origen}</span>
+              {sol.categoria_origen_motivo ? ` · ${sol.categoria_origen_motivo}` : ''}
+              {sol.categoria_revisada ? ' · revisada' : ''}
+            </p>
+          )}
+
           <Section title="Creado por">
             <Avatar
               name={sol.user_full_name}

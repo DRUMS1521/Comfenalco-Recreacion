@@ -11,10 +11,11 @@ const ESTADO_CONFIG = {
 
 const ESTADOS = Object.keys(ESTADO_CONFIG)
 
+// Tipos con los que se clasifica el exceso sobre el límite semanal.
 const TIPOS_HORA_EXTRA = [
-  { value: 'diurnas',   label: 'Horas Extras Diurnas',   desc: 'Trabajo extra en horario diurno' },
-  { value: 'nocturnas', label: 'Horas Extras Nocturnas',  desc: 'Trabajo extra en horario nocturno' },
-  { value: 'flexible',  label: 'Horas Flexibles',         desc: 'Compensación en tiempo libre' },
+  { value: 'diurnas',     label: 'Extras diurnas',     desc: 'Exceso en jornada diurna' },
+  { value: 'dominicales', label: 'Extras dominicales', desc: 'Exceso en domingo' },
+  { value: 'festivas',    label: 'Extras festivas',    desc: 'Exceso en día festivo' },
 ]
 
 
@@ -34,15 +35,18 @@ export default function EstadoModal({ solicitud, onClose, onConfirm }) {
   const [limiteHoras, setLimiteHoras]   = useState(LIMITE_HORAS)
   const [confirming, setConfirming]         = useState(false)
   const [showCountWarning, setShowCountWarning] = useState(false)
-  const [tipoHoraExtra, setTipoHoraExtra] = useState(solicitud.tipo_hora_extra || '')
+  // Clasificación del exceso por recreador: { [recreadorId]: { tipo, horas } }.
+  // Antes solo había un tipo único por solicitud, sin cantidad.
+  const [clasificaciones, setClasificaciones] = useState(() => {
+    const inicial = {}
+    ;(solicitud.horas_extra_clasificadas || []).forEach((h) => {
+      inicial[h.recreador_id] = { tipo: h.tipo, horas: String(h.horas) }
+    })
+    return inicial
+  })
   const [loading, setLoading]           = useState(false)
 
   const needsRecreador = selected === 'programado'
-  const changed = selected !== solicitud.estado ||
-    (needsRecreador && JSON.stringify([...selectedIds].sort()) !== JSON.stringify(
-      (solicitud.recreadores_asignados?.map((r) => r.id) || []).sort()
-    ))
-  const canContinue = changed && (!needsRecreador || selectedIds.length > 0)
 
   const horasNuevasServidor = validaciones[selectedIds[0]]?.horas_nuevas
   const horasNuevas = horasNuevasServidor ?? calcHours(solicitud.hora_inicio, solicitud.hora_fin)
@@ -80,7 +84,13 @@ export default function EstadoModal({ solicitud, onClose, onConfirm }) {
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     )
-    setTipoHoraExtra('')
+  }
+
+  const setClasificacion = (id, campo, valor) => {
+    setClasificaciones((prev) => ({
+      ...prev,
+      [id]: { ...(prev[id] || { tipo: '', horas: '' }), [campo]: valor },
+    }))
   }
 
   const horasDe = (id) => validaciones[id]?.horas_semana ?? 0
@@ -98,9 +108,30 @@ export default function EstadoModal({ solicitud, onClose, onConfirm }) {
       actual,
       total,
       excede: v ? v.excede_limite : total > limiteHoras,
+      // Horas que sobran: es el valor por defecto que se propone clasificar.
+      exceso: v?.exceso_horas ?? Math.max(0, Number((total - limiteHoras).toFixed(2))),
     }
   })
   const hayExceso   = excedencias.some((e) => e.excede)
+  const excedidos   = excedencias.filter((e) => e.excede)
+
+  // Al detectarse un exceso se propone la cantidad sobrante como valor inicial
+  // (el admin puede ajustarla) y el tipo queda por elegir.
+  useEffect(() => {
+    if (!hayExceso) return
+    setClasificaciones((prev) => {
+      let cambios = null
+      excedidos.forEach((e) => {
+        if (!prev[e.id]) {
+          cambios = cambios || { ...prev }
+          cambios[e.id] = { tipo: '', horas: String(e.exceso ?? 0) }
+        }
+      })
+      return cambios || prev
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hayExceso, excedidos.map((e) => `${e.id}:${e.exceso}`).join(',')])
+
 
   // Conflictos de horario para recreadores seleccionados (los calcula el servidor)
   const conflictos = selectedIds
@@ -116,7 +147,31 @@ export default function EstadoModal({ solicitud, onClose, onConfirm }) {
     .filter((c) => c.conflicto)
   const hayConflicto = conflictos.length > 0
 
-  const canProceed  = canContinue && (!hayExceso || tipoHoraExtra)
+  // Cada recreador que se pasa del límite debe tener tipo y cantidad de horas.
+  const clasificacionCompleta = excedidos.every((e) => {
+    const c = clasificaciones[e.id]
+    return c?.tipo && Number(c.horas) > 0
+  })
+
+  // Clasificar un exceso pendiente también es un cambio válido, aunque el estado
+  // y la asignación sigan iguales. Sin esto, el exceso de una actividad YA
+  // programada no se podía guardar nunca (el botón Continuar quedaba bloqueado).
+  const clasificacionCambiada = excedidos.some((e) => {
+    const c = clasificaciones[e.id]
+    if (!c?.tipo || !(Number(c.horas) > 0)) return false
+    const guardada = (solicitud.horas_extra_clasificadas || []).find(
+      (h) => h.recreador_id === e.id && h.tipo === c.tipo
+    )
+    return !guardada || Number(guardada.horas) !== Number(c.horas)
+  })
+
+  const cambioAsignacion = needsRecreador &&
+    JSON.stringify([...selectedIds].sort()) !== JSON.stringify(
+      (solicitud.recreadores_asignados?.map((r) => r.id) || []).sort()
+    )
+  const changed = selected !== solicitud.estado || cambioAsignacion || clasificacionCambiada
+  const canContinue = changed && (!needsRecreador || selectedIds.length > 0)
+  const canProceed  = canContinue && (!hayExceso || clasificacionCompleta)
 
   const selectedRecreadores = recreadores.filter((r) => selectedIds.includes(r.id))
   const cfg = ESTADO_CONFIG[selected]
@@ -134,11 +189,24 @@ export default function EstadoModal({ solicitud, onClose, onConfirm }) {
   const handleConfirm = async () => {
     setLoading(true)
     try {
+      // Se envía la clasificación por recreador; el campo legado tipo_hora_extra
+      // solo se conserva cuando todos coinciden en un mismo tipo.
+      const horasExtra = hayExceso
+        ? excedidos
+            .filter((e) => clasificaciones[e.id]?.tipo && Number(clasificaciones[e.id].horas) > 0)
+            .map((e) => ({
+              recreador_id: e.id,
+              tipo: clasificaciones[e.id].tipo,
+              horas: Number(clasificaciones[e.id].horas),
+            }))
+        : null
+      const tiposUsados = [...new Set((horasExtra || []).map((h) => h.tipo))]
       await onConfirm(
         solicitud.id,
         selected,
         needsRecreador && selectedIds.length > 0 ? selectedIds : null,
-        hayExceso && tipoHoraExtra ? tipoHoraExtra : null,
+        tiposUsados.length === 1 ? tiposUsados[0] : null,
+        horasExtra,
       )
       onClose()
     } finally {
@@ -321,28 +389,53 @@ export default function EstadoModal({ solicitud, onClose, onConfirm }) {
                       </div>
                     </div>
                   </div>
-                  <div>
-                    <p className="text-xs font-semibold text-orange-800 mb-2">
-                      Clasificar el excedente como: <span className="text-red-500">*</span>
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold text-orange-800">
+                      Clasifica el excedente de cada recreador: <span className="text-red-500">*</span>
                     </p>
-                    <div className="space-y-1.5">
-                      {TIPOS_HORA_EXTRA.map((t) => (
-                        <button key={t.value} onClick={() => setTipoHoraExtra(t.value)}
-                          className={`w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg border text-sm transition
-                            ${tipoHoraExtra === t.value
-                              ? 'border-orange-400 bg-white text-orange-700 font-semibold shadow-sm'
-                              : 'border-orange-200 bg-white/60 text-ink-700 hover:bg-white'}`}>
-                          <div className={`w-3 h-3 rounded-full border-2 shrink-0 flex items-center justify-center
-                            ${tipoHoraExtra === t.value ? 'border-orange-500' : 'border-ink-300'}`}>
-                            {tipoHoraExtra === t.value && <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />}
+                    {excedidos.map((e) => {
+                      const c = clasificaciones[e.id] || { tipo: '', horas: '' }
+                      const dif = c.horas === '' ? 0 : Number((Number(c.horas) - (e.exceso ?? 0)).toFixed(2))
+                      return (
+                        <div key={e.id} className="bg-white rounded-md border border-orange-200 p-3 space-y-2">
+                          <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <p className="text-xs font-semibold text-ink-800">{e.nombre}</p>
+                            <span className="text-[11px] text-orange-700">
+                              excede {fmt(e.exceso ?? 0)}h (total {fmt(e.total)}h / {limiteHoras}h)
+                            </span>
                           </div>
-                          <div className="min-w-0">
-                            <p className="leading-tight">{t.label}</p>
-                            <p className="text-xs text-ink-400 leading-tight">{t.desc}</p>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <label className="text-[11px] text-ink-500 shrink-0">Horas a clasificar</label>
+                            <input
+                              type="number" min="0.5" step="0.5"
+                              value={c.horas}
+                              onChange={(ev) => setClasificacion(e.id, 'horas', ev.target.value)}
+                              className="field-input py-1.5 text-xs w-24"
+                            />
+                            <span className="text-[11px] text-ink-400">h</span>
+                            {c.horas !== '' && dif !== 0 && (
+                              <span className={`text-[11px] ${dif > 0 ? 'text-red-600 font-semibold' : 'text-ink-400'}`}>
+                                {dif > 0
+                                  ? `+${fmt(dif)}h por encima del exceso`
+                                  : `${fmt(Math.abs(dif))}h menos que el exceso`}
+                              </span>
+                            )}
                           </div>
-                        </button>
-                      ))}
-                    </div>
+                          <div className="grid grid-cols-3 gap-1.5">
+                            {TIPOS_HORA_EXTRA.map((t) => (
+                              <button key={t.value} onClick={() => setClasificacion(e.id, 'tipo', t.value)}
+                                title={t.desc}
+                                className={`px-2 py-1.5 rounded-md border text-[11px] font-semibold transition
+                                  ${c.tipo === t.value
+                                    ? 'border-orange-400 bg-orange-50 text-orange-700 shadow-sm'
+                                    : 'border-ink-200 bg-white text-ink-600 hover:border-orange-300'}`}>
+                                {t.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               )}
@@ -457,7 +550,7 @@ export default function EstadoModal({ solicitud, onClose, onConfirm }) {
                   </div>
                 )}
 
-                {hayExceso && tipoHoraExtra && (
+                {hayExceso && clasificacionCompleta && (
                   <div className="mt-3 text-left border border-orange-200 bg-orange-50 rounded-md p-3 space-y-2">
                     <div className="flex items-center gap-2">
                       <svg className="w-4 h-4 text-orange-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -466,18 +559,21 @@ export default function EstadoModal({ solicitud, onClose, onConfirm }) {
                       </svg>
                       <p className="text-xs font-bold text-orange-800">Aviso de horas extras</p>
                     </div>
-                    {excedencias.filter(e => e.excede).map(e => (
-                      <p key={e.id} className="text-xs text-orange-700 leading-relaxed">
-                        <span className="font-bold">{e.nombre}</span> con lo asignado se pasará
-                        del total de horas{' '}
-                        <span className="font-bold">({fmt(e.total)}h / {limiteHoras}h)</span>.
-                        Se registrará como{' '}
-                        <span className="font-bold">
-                          {TIPOS_HORA_EXTRA.find(t => t.value === tipoHoraExtra)?.label}
-                        </span>{' '}
-                        en esa semana.
-                      </p>
-                    ))}
+                    {excedidos.map(e => {
+                      const c = clasificaciones[e.id] || {}
+                      return (
+                        <p key={e.id} className="text-xs text-orange-700 leading-relaxed">
+                          <span className="font-bold">{e.nombre}</span> se pasará del total de horas{' '}
+                          <span className="font-bold">({fmt(e.total)}h / {limiteHoras}h)</span>: se
+                          registran{' '}
+                          <span className="font-bold">{fmt(Number(c.horas) || 0)}h</span> como{' '}
+                          <span className="font-bold">
+                            {TIPOS_HORA_EXTRA.find(t => t.value === c.tipo)?.label || '—'}
+                          </span>{' '}
+                          en esa semana.
+                        </p>
+                      )
+                    })}
                   </div>
                 )}
               </div>

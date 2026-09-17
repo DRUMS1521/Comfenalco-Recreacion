@@ -202,7 +202,15 @@ def cambiar_estado(
     if not current_user.is_admin:
         raise HTTPException(status_code=403, detail="No autorizado")
     try:
-        sol = update_solicitud_estado(db, solicitud_id, data.estado, data.recreador_ids, data.tipo_hora_extra)
+        sol = update_solicitud_estado(
+            db,
+            solicitud_id,
+            data.estado,
+            data.recreador_ids,
+            data.tipo_hora_extra,
+            data.horas_extra,
+            creado_por_id=current_user.id,
+        )
     except ValueError as e:
         # Asignación inválida (sin recreadores, ids inexistentes o inactivos).
         raise HTTPException(status_code=400, detail=str(e))

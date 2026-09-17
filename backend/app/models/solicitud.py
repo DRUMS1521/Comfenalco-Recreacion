@@ -60,3 +60,13 @@ class Solicitud(Base):
         # costo del listado.
         lazy="selectin",
     )
+
+    # Clasificación manual del exceso de horas por recreador (ver HorasExtraClasificada)
+    horas_extra_clasificadas = relationship(
+        "HorasExtraClasificada",
+        primaryjoin="Solicitud.id == HorasExtraClasificada.solicitud_id",
+        foreign_keys="HorasExtraClasificada.solicitud_id",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        order_by="HorasExtraClasificada.id",
+    )

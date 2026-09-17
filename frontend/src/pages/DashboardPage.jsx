@@ -376,11 +376,13 @@ export default function DashboardPage() {
     return () => clearTimeout(t)
   }, [search])
 
-  const handleEstadoChange = async (id, estado, recreadorIds = null, tipoHoraExtra = null) => {
+  const handleEstadoChange = async (id, estado, recreadorIds = null, tipoHoraExtra = null, horasExtra = null) => {
     try {
       const body = { estado }
       if (recreadorIds?.length) body.recreador_ids = recreadorIds
       if (tipoHoraExtra) body.tipo_hora_extra = tipoHoraExtra
+      // Clasificación del exceso por recreador: [{recreador_id, tipo, horas}]
+      if (horasExtra?.length) body.horas_extra = horasExtra
       await api.patch(`/solicitudes/${id}/estado`, body)
       // El cambio puede sacar la fila del filtro actual: se recarga desde el servidor
       await refrescar()

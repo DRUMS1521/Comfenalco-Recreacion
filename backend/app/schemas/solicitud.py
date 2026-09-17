@@ -4,6 +4,9 @@ from datetime import datetime
 
 ESTADOS_VALIDOS = ["pendiente", "programado", "por corregir", "eliminado", "finalizado"]
 
+# Tipos con los que se clasifica el exceso sobre el límite semanal
+TIPOS_HORA_EXTRA_CLASIFICADA = ["diurnas", "dominicales", "festivas"]
+
 
 class RecreadorInfo(BaseModel):
     id: int
@@ -35,6 +38,34 @@ class SolicitudCreate(BaseModel):
         if v <= 0:
             raise ValueError("Debe ser mayor a 0")
         return v
+
+
+class HoraExtraClasificadaIn(BaseModel):
+    """Exceso de horas que el admin clasifica al programar, por recreador."""
+    recreador_id: int
+    tipo: str
+    horas: float
+
+    @validator("tipo")
+    def tipo_valido(cls, v):
+        if v not in TIPOS_HORA_EXTRA_CLASIFICADA:
+            raise ValueError(f"Tipo inválido. Opciones: {TIPOS_HORA_EXTRA_CLASIFICADA}")
+        return v
+
+    @validator("horas")
+    def horas_positivas(cls, v):
+        if v is None or v <= 0:
+            raise ValueError("Las horas clasificadas deben ser mayores a 0")
+        return v
+
+
+class HoraExtraClasificadaOut(BaseModel):
+    recreador_id: int
+    tipo: str
+    horas: float
+
+    class Config:
+        from_attributes = True
 
 
 class SolicitudResponse(BaseModel):
@@ -71,6 +102,8 @@ class SolicitudResponse(BaseModel):
     recreador_full_name: Optional[str] = None
     # Lista completa de recreadores asignados
     recreadores_asignados: List[RecreadorInfo] = []
+    # Exceso de horas clasificado por recreador (tipo y cantidad)
+    horas_extra_clasificadas: List[HoraExtraClasificadaOut] = []
     created_at: datetime
 
     class Config:
@@ -112,6 +145,7 @@ class ValidacionRecreador(BaseModel):
     horas_nuevas: float      # horas que aporta esta solicitud
     total: float
     excede_limite: bool
+    exceso_horas: float = 0.0   # cuántas horas sobran sobre el límite (para clasificarlas)
     conflictos: List[ConflictoHorario] = []
 
 
@@ -133,7 +167,9 @@ class FinalizarRequest(BaseModel):
 class SolicitudUpdate(BaseModel):
     estado: str
     recreador_ids: Optional[List[int]] = None   # lista de recreadores (reemplaza recreador_id)
-    tipo_hora_extra: Optional[str] = None
+    tipo_hora_extra: Optional[str] = None       # legado: un solo tipo para toda la solicitud
+    # Clasificación del exceso por recreador: [{recreador_id, tipo, horas}]
+    horas_extra: Optional[List[HoraExtraClasificadaIn]] = None
 
     @validator("estado")
     def estado_valido(cls, v):

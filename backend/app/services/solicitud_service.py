@@ -5,6 +5,7 @@ from typing import Optional, List, Dict, Any, Tuple
 from datetime import date, timedelta
 from app.models.solicitud import Solicitud
 from app.models.user import User
+from app.models.hora_extra import HorasExtraClasificada
 from app.schemas.solicitud import SolicitudCreate, SolicitudResponse, RecreadorInfo
 from app.services.email_service import send_solicitud_email
 from app.services.horas_utils import (
@@ -378,6 +379,9 @@ def validar_asignacion(db: Session, sol: Solicitud, recreador_ids: List[int]) ->
             "horas_nuevas": round(horas_nuevas, 2),
             "total": round(total, 2),
             "excede_limite": total > LIMITE_HORAS_SEMANALES,
+            # Cuántas horas sobran: es el valor por defecto que el modal pide
+            # clasificar como extras diurnas, dominicales o festivas.
+            "exceso_horas": round(max(0.0, total - LIMITE_HORAS_SEMANALES), 2),
             "conflictos": conflictos,
         })
 
@@ -398,6 +402,8 @@ def update_solicitud_estado(
     estado: str,
     recreador_ids: Optional[List[int]] = None,
     tipo_hora_extra: Optional[str] = None,
+    horas_extra: Optional[List] = None,
+    creado_por_id: Optional[int] = None,
 ) -> Optional[SolicitudResponse]:
     sol = db.query(Solicitud).filter(Solicitud.id == solicitud_id).first()
     if not sol:
@@ -431,10 +437,33 @@ def update_solicitud_estado(
         sol.recreador_id = ids_unicos[0]
         sol.tipo_hora_extra = tipo_hora_extra
         sol.recreadores = [por_id[i] for i in ids_unicos]
+
+        if horas_extra is not None:
+            # Reemplaza la clasificación anterior de esta solicitud.
+            sol.horas_extra_clasificadas = []
+            db.flush()
+            for item in horas_extra:
+                if item.recreador_id not in por_id:
+                    raise ValueError(
+                        f"El recreador {item.recreador_id} no está en la asignación"
+                    )
+                sol.horas_extra_clasificadas.append(HorasExtraClasificada(
+                    recreador_id=item.recreador_id,
+                    tipo=item.tipo,
+                    horas=round(float(item.horas), 2),
+                    creado_por_id=creado_por_id or sol.user_id,
+                ))
+        else:
+            # Sin clasificación nueva: se conserva la existente, pero se descarta
+            # la de recreadores que ya no están asignados.
+            sol.horas_extra_clasificadas = [
+                h for h in sol.horas_extra_clasificadas if h.recreador_id in por_id
+            ]
     elif estado not in ("programado", "finalizado"):
         sol.recreador_id = None
         sol.tipo_hora_extra = None
         sol.recreadores = []
+        sol.horas_extra_clasificadas = []
 
     db.commit()
     db.refresh(sol)
