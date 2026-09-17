@@ -376,9 +376,10 @@ def _ayuda(user: User) -> Dict[str, Any]:
                     "¿Qué cotizaciones tiene Cortolima?"]
     return {
         "respuesta": (
-            f"¡Hola, {_nombre(user).split(' ')[0]}! Soy el asistente de Comfenalco Tolima. "
-            "Puedo consultar la agenda de los recreadores, las solicitudes y las cotizaciones "
-            "por ti. Pregúntame lo que necesites; por ejemplo:"
+            f"¡Hola, {_nombre(user).split(' ')[0]}! Soy **Tommy**, el asistente de Comfenalco "
+            "Tolima. Puedo consultar la agenda de los recreadores, las solicitudes y las "
+            "cotizaciones por ti, con filtros combinados. Pregúntame lo que necesites; "
+            "por ejemplo:"
         ),
         "tipo": "texto",
         "sugerencias": ejemplos,
@@ -909,23 +910,24 @@ def responder(db: Session, user: User, pregunta: str,
     # ── charla corta ──
     if re.search(r"\b(gracias|mil gracias|muchas gracias|te agradezco)\b", t):
         return _cerrar({
-            "respuesta": f"¡Con gusto, {_nombre(user).split(' ')[0]}! Si necesitas algo más, aquí estoy.",
+            "respuesta": f"¡Con gusto, {_nombre(user).split(' ')[0]}! Tommy queda pendiente de lo que necesites.",
             "tipo": "texto",
             "sugerencias": ["¿Qué actividades hay hoy?", "¿Quién tiene menos carga hoy?"],
         }, contexto)
     if any(p in t for p in ("quien eres", "que eres", "como te llamas", "eres un robot",
                             "eres humano", "eres una ia")):
         return _cerrar({
-            "respuesta": ("Soy el asistente interno de Comfenalco Tolima: consulto la base del "
-                          "sistema (agenda de recreadores, solicitudes, horas y cotizaciones) y "
-                          "te respondo al instante. No soy un modelo de lenguaje: trabajo con "
-                          "reglas y datos reales, así que si algo no lo entiendo te lo digo."),
+            "respuesta": ("Soy **Tommy**, el asistente interno de Comfenalco Tolima. Consulto la "
+                          "base del sistema (agenda de recreadores, solicitudes, horas y "
+                          "cotizaciones) y te respondo al instante, con filtros por fecha, "
+                          "ciudad, empresa, tema o estado. No soy un modelo de lenguaje: trabajo "
+                          "con reglas y datos reales, así que si algo no lo entiendo te lo digo."),
             "tipo": "texto",
             "sugerencias": ["¿Qué puedes hacer?", "¿Qué actividades hay hoy?"],
         }, contexto)
     if any(p in t for p in ("adios", "hasta luego", "chao", "nos vemos")):
         return _cerrar({"respuesta": f"¡Hasta luego, {_nombre(user).split(' ')[0]}! "
-                                     "Quedo pendiente de lo que necesites.",
+                                     "Tommy queda pendiente de lo que necesites.",
                         "tipo": "texto", "sugerencias": ["¿Qué actividades hay hoy?"]}, contexto)
 
     pide_ayuda = any(p in t for p in ("que puedes hacer", "ayuda", "como funciona",
@@ -1135,5 +1137,6 @@ def responder(db: Session, user: User, pregunta: str,
             return _cerrar(intento, contexto, tema="busqueda", fecha=desde, etiqueta_fecha=etiqueta)
     base = _ayuda(user)
     base["respuesta"] = ("No estoy seguro de haber entendido. Puedo consultar la agenda de los "
-                         "recreadores, las solicitudes y las cotizaciones. Prueba con:")
+                         "recreadores, las solicitudes y las cotizaciones (con filtros por fecha, "
+                         "ciudad, empresa, tema o estado). Prueba con:")
     return _cerrar(base, contexto)
