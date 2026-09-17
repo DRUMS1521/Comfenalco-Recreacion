@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import api from '../services/api'
 import useAuth from '../hooks/useAuth'
-import tommy from '../assets/tommy.jpg'
+import tommy from '../assets/tommy-icono.png'
 
 /**
  * Tommy · asistente flotante conversacional.
@@ -111,7 +111,7 @@ function BurbujaAsistente({ m, onPreguntar, onNavegar, onCopiar, onFeedback, ani
   return (
     <div className="msg-entra flex gap-2 items-start group/msg">
       <div className="w-7 h-7 rounded-full overflow-hidden shrink-0 mt-0.5 shadow-sm ring-1 ring-ink-200">
-        <img src={tommy} alt="Tommy" className="w-full h-full object-cover" />
+        <img src={tommy} alt="Tommy" className="w-full h-full object-contain" />
       </div>
       <div className="min-w-0 flex-1 space-y-2">
         <div className="relative bg-white border border-ink-200 rounded-md rounded-tl-sm px-3 py-2 shadow-sm">
@@ -351,13 +351,13 @@ export default function AsistenteChat({ onNavegar }) {
       {modo === 'oculto' && (
         <button onClick={abrir} title="Habla con Tommy (Ctrl+K)" aria-label="Abrir el asistente Tommy"
           className="fixed z-[55] right-4 bottom-4 sm:right-6 sm:bottom-6 group
-            w-16 h-16 rounded-full shadow-xl bg-white p-1
+            w-16 h-16 rounded-full shadow-xl
             hover:scale-105 active:scale-95 transition-transform duration-200
-            ring-2 ring-primary-800 focus:outline-none focus-visible:ring-4 focus-visible:ring-accent-500
+            focus:outline-none focus-visible:ring-4 focus-visible:ring-accent-500
             flex items-center justify-center">
           {sinVer && <span className="absolute inset-0 rounded-full bg-accent-500/60 chat-latido" aria-hidden="true" />}
-          <img src={tommy} alt="Tommy" className="w-full h-full object-cover rounded-full" />
-          <span className="absolute bottom-1 right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full" />
+          <img src={tommy} alt="Tommy" className="w-full h-full object-contain drop-shadow" />
+          <span className="absolute bottom-1.5 right-1.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full" />
           {(sinVer || hayNuevos) && (
             <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-accent-500 text-ink-900 text-[10px]
               font-bold rounded-full flex items-center justify-center shadow">1</span>
@@ -373,7 +373,7 @@ export default function AsistenteChat({ onNavegar }) {
             border border-white/10 hover:bg-ink-800 transition-colors
             focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500">
           <span className="w-8 h-8 rounded-full overflow-hidden shrink-0 ring-1 ring-white/20">
-            <img src={tommy} alt="Tommy" className="w-full h-full object-cover" />
+            <img src={tommy} alt="Tommy" className="w-full h-full object-contain" />
           </span>
           <span className="text-left">
             <span className="block text-[12px] font-bold leading-tight">Tommy</span>
@@ -393,7 +393,7 @@ export default function AsistenteChat({ onNavegar }) {
           <header className="relative bg-gradient-to-r from-ink-900 via-primary-900 to-ink-900
             border-b-2 border-accent-500 px-4 py-3 flex items-center gap-3 shrink-0">
             <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 relative ring-2 ring-accent-500/70">
-              <img src={tommy} alt="Tommy" className="w-full h-full object-cover" />
+              <img src={tommy} alt="Tommy" className="w-full h-full object-contain" />
               <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-ink-900 rounded-full" />
             </div>
             <div className="min-w-0 flex-1">
@@ -473,7 +473,7 @@ export default function AsistenteChat({ onNavegar }) {
             {pensando && (
               <div className="msg-entra flex gap-2 items-center">
                 <div className="w-7 h-7 rounded-full overflow-hidden shrink-0 ring-1 ring-ink-200">
-                  <img src={tommy} alt="Tommy" className="w-full h-full object-cover" />
+                  <img src={tommy} alt="Tommy" className="w-full h-full object-contain" />
                 </div>
                 <div className="bg-white border border-ink-200 rounded-md rounded-tl-sm px-3 py-2.5 shadow-sm flex items-center gap-1">
                   {[0, 1, 2].map((d) => (
