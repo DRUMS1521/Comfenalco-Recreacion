@@ -45,5 +45,8 @@ class Solicitud(Base):
         secondary=solicitud_recreadores,
         primaryjoin="Solicitud.id == solicitud_recreadores.c.solicitud_id",
         secondaryjoin="solicitud_recreadores.c.recreador_id == User.id",
-        lazy="joined",
+        # "selectin" carga la relación con una consulta IN extra en vez de un JOIN
+        # que multiplica filas: con miles de solicitudes el JOIN era el principal
+        # costo del listado.
+        lazy="selectin",
     )

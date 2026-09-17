@@ -4,16 +4,8 @@ from typing import Optional, List, Dict, Any
 from app.models.solicitud import Solicitud
 from app.models.user import User
 from app.models.empresa import Empresa
-
-
-def _calc_hours(hora_inicio: str, hora_fin: str) -> float:
-    try:
-        h1, m1 = map(int, hora_inicio.split(':'))
-        h2, m2 = map(int, hora_fin.split(':'))
-        mins = (h2 * 60 + m2) - (h1 * 60 + m1)
-        return max(mins / 60.0, 1.0) if mins > 0 else 0.0
-    except Exception:
-        return 0
+# Cálculo de horas centralizado (antes duplicado en este módulo y en horas_extra_service).
+from app.services.horas_utils import calc_hours as _calc_hours  # noqa: F401
 
 
 def _apply_filters(query, fecha_desde: Optional[str], fecha_hasta: Optional[str], tipo_servicio: Optional[str]):

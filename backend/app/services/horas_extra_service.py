@@ -7,31 +7,17 @@ import holidays
 from app.models.solicitud import Solicitud
 from app.models.user import User
 from app.models.hora_extra import HoraExtraManual
+# Cálculo de horas centralizado en horas_utils (antes duplicado aquí).
+from app.services.horas_utils import (
+    to_minutes as _to_minutes,
+    calc_hours,
+    horas_solapadas as _horas_solapadas,
+    LIMITE_HORAS_SEMANALES,
+)
 
 CO_HOLIDAYS = holidays.CO()
 
 CATEGORIAS = ("ordinarias", "recargo_nocturno", "extra_ordinaria", "extra_festiva")
-
-
-def _to_minutes(hhmm: str) -> int:
-    h, m = map(int, hhmm.split(":"))
-    return h * 60 + m
-
-
-def calc_hours(hora_inicio: str, hora_fin: str) -> float:
-    """Misma lógica que stats_service._calc_hours: mínimo 1h si el turno es positivo."""
-    try:
-        mins = _to_minutes(hora_fin) - _to_minutes(hora_inicio)
-        return max(mins / 60.0, 1.0) if mins > 0 else 0.0
-    except Exception:
-        return 0.0
-
-
-def _horas_solapadas(hora_inicio: str, hora_fin: str, limite_inicio: str, limite_fin: str) -> float:
-    ini, fin = _to_minutes(hora_inicio), _to_minutes(hora_fin)
-    lim_ini, lim_fin = _to_minutes(limite_inicio), _to_minutes(limite_fin)
-    solape = min(fin, lim_fin) - max(ini, lim_ini)
-    return max(solape, 0) / 60.0
 
 
 def clasificar_horas(fecha: date, hora_inicio: str, hora_fin: str) -> Dict[str, float]:

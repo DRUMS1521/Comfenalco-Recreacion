@@ -1,15 +1,41 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from app.core.database import get_db
-from app.schemas.solicitud import SolicitudCreate, SolicitudResponse, SolicitudUpdate, FinalizarRequest
+from app.schemas.solicitud import (
+    SolicitudCreate,
+    SolicitudResponse,
+    SolicitudUpdate,
+    FinalizarRequest,
+    PaginaSolicitudes,
+    ResumenSolicitudes,
+    ValidacionAsignacion,
+)
 from app.services.auth_service import get_current_user
 from app.services.solicitud_service import (
-    create_solicitud, get_solicitudes, get_solicitud_by_id, update_solicitud_estado, finalizar_solicitud
+    create_solicitud,
+    get_solicitudes,
+    get_solicitudes_paginadas,
+    get_resumen_solicitudes,
+    get_solicitud_orm,
+    solicitud_to_response,
+    update_solicitud_estado,
+    validar_asignacion,
+    finalizar_solicitud,
+    usuario_puede_ver_solicitud,
 )
 from app.models.user import User
 
 router = APIRouter(prefix="/solicitudes", tags=["solicitudes"])
+
+
+def _alcance(current_user: User):
+    """Argumentos de alcance por rol para las consultas de listado."""
+    if current_user.is_admin:
+        return {}
+    if current_user.is_recreador:
+        return {"recreador_id": current_user.id}
+    return {"user_id": current_user.id}
 
 
 @router.post("/", response_model=SolicitudResponse, status_code=status.HTTP_201_CREATED)
@@ -21,16 +47,66 @@ def crear_solicitud(
     return create_solicitud(db, solicitud, current_user.id)
 
 
-@router.get("/", response_model=List[SolicitudResponse])
-def listar_solicitudes(
+# ── Rutas estáticas ANTES de /{solicitud_id} para que FastAPI no intente
+#    interpretarlas como un id numérico. ─────────────────────────────────────
+
+@router.get("/paginadas", response_model=PaginaSolicitudes)
+def listar_solicitudes_paginadas(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=100),
+    estado: Optional[str] = None,
+    q: Optional[str] = None,
+    fecha_desde: Optional[str] = None,
+    fecha_hasta: Optional[str] = None,
+    sort_dir: str = Query("asc", pattern="^(asc|desc)$"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.is_admin:
-        return get_solicitudes(db)
-    if current_user.is_recreador:
-        return get_solicitudes(db, recreador_id=current_user.id)
-    return get_solicitudes(db, user_id=current_user.id)
+    """Listado paginado en servidor. Sustituye al listado completo para la vista
+    de lista del admin: filtra, cuenta y ordena en la base de datos."""
+    return get_solicitudes_paginadas(
+        db,
+        page=page,
+        page_size=page_size,
+        estado=estado,
+        search=q,
+        fecha_desde=fecha_desde,
+        fecha_hasta=fecha_hasta,
+        sort_dir=sort_dir,
+        **_alcance(current_user),
+    )
+
+
+@router.get("/resumen", response_model=ResumenSolicitudes)
+def resumen_solicitudes(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Conteos por estado y finalizadas de la semana, calculados con GROUP BY."""
+    return get_resumen_solicitudes(db, **_alcance(current_user))
+
+
+@router.get("/", response_model=List[SolicitudResponse])
+def listar_solicitudes(
+    estado: Optional[str] = None,
+    q: Optional[str] = None,
+    fecha_desde: Optional[str] = None,
+    fecha_hasta: Optional[str] = None,
+    sort_dir: str = Query("asc", pattern="^(asc|desc)$"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Listado completo con filtros opcionales. Se mantiene por compatibilidad
+    (calendarios y validación de asignaciones lo usan con rango de fechas)."""
+    return get_solicitudes(
+        db,
+        estado=estado,
+        search=q,
+        fecha_desde=fecha_desde,
+        fecha_hasta=fecha_hasta,
+        sort_dir=sort_dir,
+        **_alcance(current_user),
+    )
 
 
 @router.get("/{solicitud_id}", response_model=SolicitudResponse)
@@ -39,12 +115,43 @@ def obtener_solicitud(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    sol = get_solicitud_by_id(db, solicitud_id)
+    sol = get_solicitud_orm(db, solicitud_id)
     if not sol:
         raise HTTPException(status_code=404, detail="Solicitud no encontrada")
-    if not current_user.is_admin and sol.user_id != current_user.id and sol.recreador_id != current_user.id:
+    # Comprueba también la asignación many-to-many (no solo el recreador primario).
+    if not usuario_puede_ver_solicitud(sol, current_user):
         raise HTTPException(status_code=403, detail="No autorizado")
-    return sol
+    return solicitud_to_response(sol, db)
+
+
+@router.get("/{solicitud_id}/validacion", response_model=ValidacionAsignacion)
+def validar_asignacion_solicitud(
+    solicitud_id: int,
+    recreador_ids: str = Query("", description="Ids de recreador separados por coma, ej: 3,7"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Horas semanales y conflictos de horario de los recreadores candidatos.
+
+    Lo usa el modal de cambio de estado para avisar antes de programar, sin
+    necesidad de descargar todas las solicitudes en el navegador."""
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="No autorizado")
+
+    sol = get_solicitud_orm(db, solicitud_id)
+    if not sol:
+        raise HTTPException(status_code=404, detail="Solicitud no encontrada")
+
+    ids = []
+    for token in recreador_ids.split(","):
+        token = token.strip()
+        if not token:
+            continue
+        if not token.isdigit():
+            raise HTTPException(status_code=400, detail=f"Id de recreador inválido: {token}")
+        ids.append(int(token))
+
+    return validar_asignacion(db, sol, ids)
 
 
 @router.patch("/{solicitud_id}/finalizar", response_model=SolicitudResponse)
@@ -81,7 +188,11 @@ def cambiar_estado(
 ):
     if not current_user.is_admin:
         raise HTTPException(status_code=403, detail="No autorizado")
-    sol = update_solicitud_estado(db, solicitud_id, data.estado, data.recreador_ids, data.tipo_hora_extra)
+    try:
+        sol = update_solicitud_estado(db, solicitud_id, data.estado, data.recreador_ids, data.tipo_hora_extra)
+    except ValueError as e:
+        # Asignación inválida (sin recreadores, ids inexistentes o inactivos).
+        raise HTTPException(status_code=400, detail=str(e))
     if not sol:
         raise HTTPException(status_code=404, detail="Solicitud no encontrada")
     return sol

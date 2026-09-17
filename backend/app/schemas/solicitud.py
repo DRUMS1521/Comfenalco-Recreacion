@@ -1,5 +1,5 @@
 from pydantic import BaseModel, validator
-from typing import Optional, List
+from typing import Optional, List, Dict
 from datetime import datetime
 
 ESTADOS_VALIDOS = ["pendiente", "programado", "por corregir", "eliminado", "finalizado"]
@@ -71,6 +71,52 @@ class SolicitudResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class PaginaSolicitudes(BaseModel):
+    """Envelope del listado paginado en servidor."""
+    items: List[SolicitudResponse]
+    total: int
+    page: int
+    page_size: int
+    pages: int
+
+
+class ResumenSolicitudes(BaseModel):
+    """Conteos agregados para los contadores del dashboard."""
+    total: int
+    por_estado: Dict[str, int]
+    finalizadas_semana: int
+    semana_desde: str
+    semana_hasta: str
+
+
+class ConflictoHorario(BaseModel):
+    solicitud_id: int
+    empresa: str
+    hora_inicio: str
+    hora_fin: str
+
+
+class ValidacionRecreador(BaseModel):
+    id: int
+    nombre: str
+    horas_semana: float      # horas ya programadas esa semana (sin contar esta solicitud)
+    horas_nuevas: float      # horas que aporta esta solicitud
+    total: float
+    excede_limite: bool
+    conflictos: List[ConflictoHorario] = []
+
+
+class ValidacionAsignacion(BaseModel):
+    """Resultado de validar una asignación de recreadores en el servidor."""
+    solicitud_id: int
+    semana_desde: str
+    semana_hasta: str
+    limite_horas: int
+    recreadores: List[ValidacionRecreador]
+    hay_exceso: bool
+    hay_conflicto: bool
 
 
 class FinalizarRequest(BaseModel):
