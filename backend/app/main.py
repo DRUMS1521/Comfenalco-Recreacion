@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import Base, engine, SessionLocal
 from app.core.migrations import aplicar_migraciones
-from app.routes import auth, solicitudes, stats, empresas, users, horas_extra, viaticos
+from app.routes import auth, solicitudes, stats, empresas, users, horas_extra, viaticos, cotizaciones
 
 logger = logging.getLogger("comfenalco")
 
@@ -128,6 +128,8 @@ app.include_router(empresas.router)
 app.include_router(users.router)
 app.include_router(horas_extra.router)
 app.include_router(viaticos.router)
+app.include_router(cotizaciones.router)
+app.include_router(cotizaciones.catalogo_router)
 
 
 @app.get("/")

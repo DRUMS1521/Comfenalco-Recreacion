@@ -24,6 +24,7 @@ import WelcomeModal from '../components/WelcomeModal'
 const StatsRecreador = lazy(() => import('../components/StatsRecreador'))
 const StatsAdmin = lazy(() => import('../components/StatsAdmin'))
 const ViaticosView = lazy(() => import('../components/ViaticosView'))
+const CotizacionesView = lazy(() => import('../components/CotizacionesView'))
 
 const ESTADO_CONFIG = {
   pendiente:       { label: 'Pendiente',    cls: 'border-yellow-500 text-yellow-800' },
@@ -230,7 +231,12 @@ export default function DashboardPage() {
   const [resumen, setResumen] = useState({ total: 0, por_estado: {}, finalizadas_semana: 0 })
   const [eventosHoy, setEventosHoy] = useState([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState('lista')
+  // Un usuario solo de cotizaciones entra directo a su módulo
+  const [tab, setTab] = useState(() =>
+    (user?.is_cotizador && !user?.is_admin && !user?.is_promotor && !user?.is_recreador)
+      ? 'cotizaciones'
+      : 'lista'
+  )
   const [calView, setCalView] = useState('semana')
   const [estadoTarget, setEstadoTarget] = useState(null)
   const [detailTarget, setDetailTarget] = useState(null)
@@ -258,6 +264,7 @@ export default function DashboardPage() {
   const isAdmin = user?.is_admin
   const isPromotor = user?.is_promotor
   const isSuperAdmin = user?.is_super_admin
+  const isCotizador = user?.is_cotizador
 
   // Fecha de hoy estable durante la sesión (evita recrear los callbacks en cada render)
   const hoy = useMemo(() => toYMD(new Date()), [])
@@ -487,6 +494,7 @@ export default function DashboardPage() {
     usuarios:     'Gestión de Usuarios',
     'horas-extra': isRecreador ? 'Mis Horas Extras' : 'Horas Extras y Recargos',
     viaticos:     'Mis Viáticos',
+    cotizaciones: 'Cotizaciones',
   }
 
   return (
@@ -498,6 +506,7 @@ export default function DashboardPage() {
         isRecreador={isRecreador}
         isPromotor={isPromotor}
         isSuperAdmin={isSuperAdmin}
+        isCotizador={isCotizador}
         badgeCount={isAdmin ? conteo('programado') : solicitudes.filter((s) => s.estado === 'programado').length}
         onNuevaSolicitud={() => setShowSolicitudModal(true)}
       />
@@ -526,7 +535,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Stats / Filtros */}
-          {tab !== 'estadisticas' && tab !== 'empresas' && tab !== 'viaticos' && !isPromotor && (
+          {tab !== 'estadisticas' && tab !== 'empresas' && tab !== 'viaticos' && tab !== 'cotizaciones' && !isPromotor && (
             isAdmin ? (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {ADMIN_STATS.map((s) => {
@@ -927,6 +936,15 @@ export default function DashboardPage() {
 
             {/* Tab: Usuarios (super admin) */}
             {tab === 'usuarios' && isSuperAdmin && <div className="view-enter"><UsersView /></div>}
+
+            {/* Tab: Cotizaciones (admin, promotor y persona de cotizaciones) */}
+            {tab === 'cotizaciones' && (isAdmin || isPromotor || isCotizador) && (
+              <div className="p-4 sm:p-6 view-enter">
+                <Suspense fallback={<SkeletonList rows={6} />}>
+                  <CotizacionesView />
+                </Suspense>
+              </div>
+            )}
 
             {/* Tab: Viáticos (super admin) */}
             {tab === 'viaticos' && isSuperAdmin && (

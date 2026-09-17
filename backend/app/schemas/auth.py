@@ -18,6 +18,7 @@ class TokenResponse(BaseModel):
     is_recreador: bool = False
     is_promotor: bool = False
     is_super_admin: bool = False
+    is_cotizador: bool = False
     cargo: Optional[str] = None
 
 
@@ -39,6 +40,7 @@ class UserResponse(BaseModel):
     is_recreador: bool = False
     is_promotor: bool = False
     is_super_admin: bool = False
+    is_cotizador: bool = False
     is_active: bool = True
     cargo: Optional[str] = None
 

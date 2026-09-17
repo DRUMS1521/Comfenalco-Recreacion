@@ -31,6 +31,12 @@ CARGO_ROLES = {
         "is_super_admin": False, "is_admin": False,
         "is_recreador": False, "is_promotor": True,
     },
+    # Rol dedicado: mantiene el catálogo de proveedores y gestiona las cotizaciones
+    "Persona de Cotizaciones": {
+        "is_super_admin": False, "is_admin": False,
+        "is_recreador": False, "is_promotor": False,
+        "is_cotizador": True,
+    },
 }
 
 
@@ -64,7 +70,7 @@ def create_user(
 
     roles = CARGO_ROLES.get(payload.cargo, {
         "is_super_admin": False, "is_admin": False,
-        "is_recreador": False, "is_promotor": False,
+        "is_recreador": False, "is_promotor": False, "is_cotizador": False,
     })
 
     user = User(
@@ -109,7 +115,7 @@ def update_user(
         user.cargo = payload.cargo
         roles = CARGO_ROLES.get(payload.cargo, {
             "is_super_admin": False, "is_admin": False,
-            "is_recreador": False, "is_promotor": False,
+            "is_recreador": False, "is_promotor": False, "is_cotizador": False,
         })
         for k, v in roles.items():
             setattr(user, k, v)

@@ -16,6 +16,8 @@ class User(Base):
     is_admin = Column(Boolean, default=False)
     is_recreador = Column(Boolean, default=False)
     is_promotor = Column(Boolean, default=False)
+    # Rol dedicado a cotizaciones de proveedores (departamento de alimentos)
+    is_cotizador = Column(Boolean, default=False)
     is_super_admin = Column(Boolean, default=False)
     cargo = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

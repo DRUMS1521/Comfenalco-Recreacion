@@ -27,6 +27,7 @@ def authenticate_user(db: Session, username: str, password: str):
         is_recreador=user.is_recreador,
         is_promotor=user.is_promotor,
         is_super_admin=user.is_super_admin,
+        is_cotizador=user.is_cotizador,
         cargo=user.cargo,
     )
 

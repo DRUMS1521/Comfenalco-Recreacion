@@ -58,3 +58,6 @@ dist/
 
 # Otros
 .claude/
+
+# Portafolios de proveedores (precios internos): no versionar
+backend/data/*.xlsx

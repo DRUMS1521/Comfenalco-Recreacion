@@ -61,6 +61,12 @@ const NAV_ICONS = {
         d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
   ),
+  cotizaciones: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M9 12h6m-6 4h4M7 3h7l5 5v13a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z" />
+    </svg>
+  ),
   viaticos: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -69,7 +75,7 @@ const NAV_ICONS = {
   ),
 }
 
-export default function Sidebar({ tab, setTab, isAdmin, isRecreador, isPromotor, isSuperAdmin, badgeCount = 0, onNuevaSolicitud }) {
+export default function Sidebar({ tab, setTab, isAdmin, isRecreador, isPromotor, isSuperAdmin, isCotizador, badgeCount = 0, onNuevaSolicitud }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   // En móvil/tablet la navegación es una barra superior + cajón lateral: el rail
@@ -97,18 +103,28 @@ export default function Sidebar({ tab, setTab, isAdmin, isRecreador, isPromotor,
     }
   }, [abierto])
 
-  const navItems = isPromotor
-    ? [{ key: 'lista', label: 'Mis Solicitudes' }]
-    : [
-        { key: 'lista',        label: isRecreador ? 'Mis Asignaciones' : 'Solicitudes' },
-        { key: 'calendario',   label: 'Calendario', badge: badgeCount > 0 ? badgeCount : null },
-        ...(isAdmin ? [{ key: 'empresas', label: 'Empresas' }] : []),
-        { key: 'estadisticas', label: 'Estadísticas' },
-        ...(isRecreador ? [{ key: 'horas-extra', label: 'Mis Horas Extras' }] : []),
-        ...(isAdmin ? [{ key: 'horas-extra', label: 'Horas Extras y Recargos' }] : []),
-        ...(isSuperAdmin ? [{ key: 'usuarios', label: 'Usuarios' }] : []),
-        ...(isSuperAdmin ? [{ key: 'viaticos', label: 'Mis Viáticos' }] : []),
-      ]
+  const puedeCotizar = isAdmin || isPromotor || isCotizador
+  // Un usuario solo de cotizaciones no ve el módulo de recreación
+  const soloCotizaciones = isCotizador && !isAdmin && !isPromotor && !isRecreador
+
+  const navItems = soloCotizaciones
+    ? [{ key: 'cotizaciones', label: 'Cotizaciones' }]
+    : isPromotor
+      ? [
+          { key: 'lista', label: 'Mis Solicitudes' },
+          ...(puedeCotizar ? [{ key: 'cotizaciones', label: 'Cotizaciones' }] : []),
+        ]
+      : [
+          { key: 'lista',        label: isRecreador ? 'Mis Asignaciones' : 'Solicitudes' },
+          { key: 'calendario',   label: 'Calendario', badge: badgeCount > 0 ? badgeCount : null },
+          ...(isAdmin ? [{ key: 'empresas', label: 'Empresas' }] : []),
+          { key: 'estadisticas', label: 'Estadísticas' },
+          ...(isRecreador ? [{ key: 'horas-extra', label: 'Mis Horas Extras' }] : []),
+          ...(isAdmin ? [{ key: 'horas-extra', label: 'Horas Extras y Recargos' }] : []),
+          ...(puedeCotizar ? [{ key: 'cotizaciones', label: 'Cotizaciones' }] : []),
+          ...(isSuperAdmin ? [{ key: 'usuarios', label: 'Usuarios' }] : []),
+          ...(isSuperAdmin ? [{ key: 'viaticos', label: 'Mis Viáticos' }] : []),
+        ]
 
   return (
     <>
@@ -217,7 +233,7 @@ export default function Sidebar({ tab, setTab, isAdmin, isRecreador, isPromotor,
         ))}
 
         {/* Nueva solicitud (solo no-recreadores y no-promotores — promotor lo tiene en su dashboard) */}
-        {!isRecreador && !isPromotor && (
+        {!isRecreador && !isPromotor && !soloCotizaciones && (
           <>
             <div className="my-2 border-t border-white/10" />
             <button

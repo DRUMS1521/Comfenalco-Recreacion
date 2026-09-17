@@ -22,6 +22,7 @@ _COLUMNAS = [
     ("users", "is_promotor", "BOOLEAN DEFAULT 0", "BOOLEAN DEFAULT FALSE"),
     ("users", "is_super_admin", "BOOLEAN DEFAULT 0", "BOOLEAN DEFAULT FALSE"),
     ("users", "cargo", "TEXT", "TEXT"),
+    ("users", "is_cotizador", "BOOLEAN DEFAULT 0", "BOOLEAN DEFAULT FALSE"),
     ("solicitudes", "categoria_origen", "VARCHAR", "VARCHAR"),
     ("solicitudes", "categoria_origen_motivo", "VARCHAR", "VARCHAR"),
     ("solicitudes", "categoria_revisada", "BOOLEAN DEFAULT 0", "BOOLEAN DEFAULT FALSE"),
