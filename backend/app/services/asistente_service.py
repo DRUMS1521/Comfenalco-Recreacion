@@ -247,12 +247,14 @@ def _detectar_concepto(db: Session, pregunta: str) -> Optional[str]:
     permite responder "quién va el domingo para caike" aunque CAIKE solo aparezca
     dentro de las observaciones.
     """
+    from app.services.asistente_consulta import VACIAS  # vocabulario de la consulta
     t = _norm(pregunta)
     # fuera las fechas ISO que se añaden al heredar el turno anterior ("2026-09-20"):
     # si no, "2026" se colaba como concepto porque aparece en las observaciones
     t = re.sub(r"\d{4}-\d{2}-\d{2}", " ", t)
     palabras = [w for w in re.split(r"[^a-z0-9]+", t)
-                if len(w) >= 3 and not w.isdigit() and w not in PALABRAS_VACIAS]
+                if len(w) >= 3 and not w.isdigit()
+                and w not in PALABRAS_VACIAS and w not in VACIAS]
     if not palabras:
         return None
     # descartar los nombres propios de recreadores
@@ -757,8 +759,8 @@ def _consulta_actividades(db: Session, user: User, pregunta: str, f=None) -> Dic
         return {"respuesta": respuesta, "tipo": "grupos", "items": items, "filtros": fichas,
                 "conteos": [{"etiqueta": "Actividades", "valor": r["total"]},
                             {"etiqueta": "Horas", "valor": r["horas"]},
-                            {"etiqueta": campo.capitalize() or "Grupos", "valor": len(r["grupos"])}],
-                "extra": f"y {len(r['grupos']) - len(filas)} grupos más" if len(r["grupos"]) > len(filas) else None,
+                            {"etiqueta": campo.capitalize() or "Grupos", "valor": r["grupos"]}],
+                "extra": f"y {r['grupos'] - len(filas)} grupos más" if r["grupos"] > len(filas) else None,
                 "sugerencias": ["¿Cuántas hay por ciudad?", "¿Y agrupadas por recreador?"]}
 
     solicitudes = r["solicitudes"]

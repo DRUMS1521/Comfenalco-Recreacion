@@ -38,6 +38,25 @@ ESTADOS = {
     "anulada": "anulada", "anuladas": "anulada",
 }
 
+# Palabras que no pueden ser un "tema": son de la propia consulta. Sin esto,
+# "cuántas por empresa" buscaba la palabra "empresa" dentro de los datos.
+VACIAS = {
+    "empresa", "empresas", "cliente", "clientes", "ciudad", "ciudades", "municipio",
+    "recreador", "recreadores", "persona", "personas", "dia", "dias", "fecha", "fechas",
+    "servicio", "servicios", "tipo", "tipos", "categoria", "categorias", "agrupado",
+    "agrupada", "agrupados", "agrupadas", "agrupar", "por", "segun", "top", "ranking",
+    "cuantas", "cuantos", "cantidad", "total", "totales", "sin", "excepto", "salvo",
+    "menos", "mas", "orden", "primero", "primeros", "ultimos", "ultimas", "proximos",
+    "proximas", "siguientes", "mes", "meses", "semana", "semanas", "anio", "anos",
+    "administrativa", "administrativas", "administrativo", "administrativos",
+    "dudoso", "dudosos", "dudosa", "dudosas", "real", "reales",
+    "listado", "lista", "listar", "muestra", "muestrame", "dame", "quiero", "saber",
+    "cuanto", "cuanta", "cuantos", "hay", "hubo", "habra", "van", "va", "hace",
+    "trabajan", "trabaja", "cubre", "cubren", "asignado", "asignados", "encargado",
+    "encargados", "resumen", "estadistica", "estadisticas", "reporte",
+} | set(MESES)
+
+
 AGRUPACIONES = {
     "empresa": "empresa", "empresas": "empresa", "cliente": "empresa", "clientes": "empresa",
     "ciudad": "ciudad", "ciudades": "ciudad", "municipio": "ciudad",
@@ -220,6 +239,17 @@ def _fechas(t: str) -> Tuple[Optional[date], Optional[date], Optional[str], bool
         except ValueError:
             pass
 
+    # un mes suelto ("en septiembre", "de octubre"): todo ese mes
+    for i, mes in enumerate(MESES):
+        if re.search(rf"\b{norm(mes)}\b", t):
+            if i + 1 < hoy.month:      # ya pasó este año -> se asume el año siguiente solo si es futuro cercano
+                anio = hoy.year
+            else:
+                anio = hoy.year
+            primero = date(anio, i + 1, 1)
+            ultimo = (primero + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+            return primero, ultimo, f"{mes} de {anio}", True
+
     return hoy, hoy, f"hoy ({_larga(hoy)})", False
 
 
@@ -256,6 +286,13 @@ def extraer(db: Session, user: User, pregunta: str) -> Filtros:
     elif any(p in t for p in ("los que menos", "el que menos", "menor", "menos actividades")):
         filtros.orden = "menos"
 
+    # "top 5 empresas con más actividades": sin la palabra "por" también se agrupa
+    if not filtros.agrupar_por and filtros.orden:
+        for palabra, campo in AGRUPACIONES.items():
+            if re.search(rf"\b{palabra}s?\b", t) and campo != "dia":
+                filtros.agrupar_por = campo
+                break
+
     m = re.search(r"\b(?:top|primeros|las|los)\s+(\d{1,2})\b", t)
     if m and 1 <= int(m.group(1)) <= 50:
         filtros.limite = int(m.group(1))
@@ -285,9 +322,12 @@ def extraer(db: Session, user: User, pregunta: str) -> Filtros:
         filtros.recreador_id = quien.id
         filtros.recreador_nombre = quien.full_name or quien.username
 
-    # concepto libre (solo si existe de verdad en los datos)
-    if not filtros.empresa and not filtros.tipo_servicio and not filtros.ciudad:
-        filtros.concepto = _concepto(db, t)
+    # concepto libre (solo si existe de verdad en los datos y no repite otro filtro)
+    candidato = _concepto(db, t)
+    if candidato:
+        ya_usado = [filtros.empresa, filtros.tipo_servicio, filtros.ciudad, filtros.categoria]
+        if not any(x and norm(x) == norm(candidato) for x in ya_usado):
+            filtros.concepto = candidato
 
     return filtros
 

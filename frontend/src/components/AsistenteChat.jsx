@@ -146,6 +146,24 @@ function BurbujaAsistente({ m, onPreguntar, onNavegar, onCopiar, onFeedback, ani
           )}
         </div>
 
+        {completo && m.filtros?.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1">
+            <span className="text-[10px] uppercase tracking-wide text-ink-400 flex items-center gap-1">
+              <svg className="w-3 h-3 text-primary-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+              Entendí
+            </span>
+            {m.filtros.map((f, k) => (
+              <span key={k} className="msg-entra text-[10px] bg-ink-100 border border-ink-200 text-ink-600
+                rounded-full px-2 py-0.5" style={{ animationDelay: `${k * 40}ms` }}>
+                <span className="text-ink-400">{f.campo}:</span> <b className="font-semibold">{f.valor}</b>
+              </span>
+            ))}
+          </div>
+        )}
+
         {completo && m.conteos?.length > 0 && <Conteos conteos={m.conteos} />}
         {completo && m.items?.length > 0 && (
           <div className="space-y-1.5">
@@ -285,7 +303,8 @@ export default function AsistenteChat({ onNavegar }) {
       setMensajes((prev) => [...prev, {
         autor: 'asistente', texto: data.respuesta, contexto: data.contexto, tipo: data.tipo,
         items: data.items, conteos: data.conteos, extra: data.extra,
-        sugerencias: data.sugerencias, acciones: data.acciones, hora: hora(), animar: true,
+        sugerencias: data.sugerencias, acciones: data.acciones, filtros: data.filtros,
+        hora: hora(), animar: true,
       }])
       if (!abierto) setHayNuevos(true)
     } catch (err) {
